@@ -1,4 +1,4 @@
-package com.example.route_nxt;
+package com.thathsara.route_nxt;
 
 import io.flutter.embedding.android.FlutterActivity;
 

@@ -1,0 +1,1 @@
+enum SignInStatus{success,biometricFailed,biometricNotSupported,disabled,expired}

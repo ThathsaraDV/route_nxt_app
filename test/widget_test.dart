@@ -7,13 +7,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:route_nxt/config/route/go_router_provider.dart';
+import 'package:route_nxt/core/utility/service_locator.dart';
 
 import 'package:route_nxt/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    final route = sl.get<GoRouterProvider>();
+    await tester.pumpWidget(RouteNXT(router: route.getRoute(),));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
