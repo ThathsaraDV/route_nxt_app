@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
 import 'package:route_nxt/features/account/presentation/bloc/signin/sign_in_cubit.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
@@ -181,15 +182,16 @@ class _SignInWidgetState extends State<SignInWidget> {
                     padding: const EdgeInsets.only(left: 20, right: 20),
                     child: ElevatedButton(
                       onPressed: () {
-                        if (widget.usernameController.value.text.isNotEmpty &&
-                            widget.passwordController.value.text.isNotEmpty) {
-                          context.read<SignInCubit>().signIn(
-                              username: widget.usernameController.value.text,
-                              password: widget.passwordController.value.text);
-                        } else {
-                          CustomSnackBar.showSnackBar(
-                              null, "Invalid username or password", 'error');
-                        }
+                        // if (widget.usernameController.value.text.isNotEmpty &&
+                        //     widget.passwordController.value.text.isNotEmpty) {
+                        //   context.read<SignInCubit>().signIn(
+                        //       username: widget.usernameController.value.text,
+                        //       password: widget.passwordController.value.text);
+                        // } else {
+                        //   CustomSnackBar.showSnackBar(
+                        //       null, "Invalid username or password", 'error');
+                        // }
+                        GoRouter.of(context).pushReplacement('/home');
                       },
                       style: CommonStyles.mainButtonStyles(
                           backgroundColor:
@@ -244,7 +246,9 @@ class _SignInWidgetState extends State<SignInWidget> {
                         width: 0.5,
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          context.read<SignInCubit>().navigateToSignUp();
+                        },
                         child: const Text(
                           "SIGN UP",
                           textAlign: TextAlign.center,

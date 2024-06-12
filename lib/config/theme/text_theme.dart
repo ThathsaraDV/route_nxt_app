@@ -14,6 +14,12 @@ TextTheme createTextTheme(
     labelLarge: bodyTextTheme.labelLarge,
     labelMedium: bodyTextTheme.labelMedium,
     labelSmall: bodyTextTheme.labelSmall,
+    titleLarge: bodyTextTheme.titleLarge,
+    titleMedium: bodyTextTheme.titleMedium,
+    titleSmall: bodyTextTheme.titleSmall,
+    displayLarge: bodyTextTheme.displayLarge,
+    displayMedium: bodyTextTheme.displayMedium,
+    displaySmall: bodyTextTheme.displaySmall,
   );
   return textTheme;
 }
