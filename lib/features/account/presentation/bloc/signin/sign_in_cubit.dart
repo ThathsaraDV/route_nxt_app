@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:route_nxt/core/enums/signin_status.dart';
+import 'package:route_nxt/core/utility/app_constant.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 part 'sign_in_state.dart';
@@ -62,10 +63,10 @@ class SignInCubit extends Cubit<SignInState> {
     }
   }
 
-  Future<void> serviceAccountAuth() async {
+  Future<void> navigateToSignUp() async {
     try {
       emit(const SignInState.loading());
-
+      sharedPreferences.setBool(AppConstant.keyIsLogin, false);
       emit(const SignInState.signUp());
     } catch (e) {
       emit(const SignInState.error("System Error"));

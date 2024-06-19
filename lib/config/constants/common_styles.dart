@@ -52,4 +52,40 @@ class CommonStyles {
     ],
   );
 
+  static OutlineInputBorder buildSharedInputBorder() {
+    return OutlineInputBorder(
+      borderSide: BorderSide(
+        color: Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+            .colorScheme
+            .primary.withOpacity(0.2),
+        width: 1,
+      ),
+      borderRadius: const BorderRadius.all(Radius.circular(12.0)),
+    );
+  }
+
+  static OutlineInputBorder buildFocusedInputBorder() {
+    return OutlineInputBorder(
+      borderSide: BorderSide(
+        color: Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+            .colorScheme
+            .primary.withOpacity(0.5),
+        width: 1.15,
+      ),
+      borderRadius: const BorderRadius.all(Radius.circular(12.0)),
+    );
+  }
+
+  static OutlineInputBorder buildDisabledInputBorder() {
+    return OutlineInputBorder(
+      borderSide: BorderSide(
+        color: Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+            .colorScheme
+            .outline,
+        width: 1.15,
+      ),
+      borderRadius: const BorderRadius.all(Radius.circular(12.0)),
+    );
+  }
+
 }
