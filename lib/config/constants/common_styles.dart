@@ -11,6 +11,12 @@ class CommonStyles {
   static const Color infoDarkColor = Color(0xFF1976D2);
   static const Color errorMsgBgColor = Color(0xFFDC4C64);
   static const Color errorDarkColor = Color(0xffc72c41);
+  static const List<Color> pieChartColors = [
+    Color(0xff8488B5),
+    Color(0xff78ACC1),
+    Color(0xffDD8A62),
+    Color(0xff2DA0FA)
+  ];
 
   static ButtonStyle mainButtonStyles(
       {Color? backgroundColor, double? minimumSizeHeight}) {
@@ -38,6 +44,19 @@ class CommonStyles {
                 .onPrimary,
         fontWeight: FontWeight.bold);
   }
+
+  static Gradient lightCardGradient1 = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+          .colorScheme
+          .onTertiary,
+      Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+          .colorScheme
+          .surface,
+    ],
+  );
 
   static Gradient lightCardGradient2 = LinearGradient(
     begin: Alignment.topCenter,

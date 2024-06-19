@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/config/global/app_settings.dart';
 import 'package:route_nxt/features/account/presentation/bloc/signin/sign_in_cubit.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 
@@ -191,7 +192,7 @@ class _SignInWidgetState extends State<SignInWidget> {
                         //   CustomSnackBar.showSnackBar(
                         //       null, "Invalid username or password", 'error');
                         // }
-                        GoRouter.of(context).pushReplacement('/home');
+                        AppSettings.rootNavigatorKey.currentContext!.push('/home');
                       },
                       style: CommonStyles.mainButtonStyles(
                           backgroundColor:

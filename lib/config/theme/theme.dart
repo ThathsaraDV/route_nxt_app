@@ -195,7 +195,7 @@ class MaterialTheme {
       onSurfaceVariant: Color(0xffc4c7c8),
       outline: Color(0xff8e9192),
       outlineVariant: Color(0xff444749),
-      shadow: Color(0xff000000),
+      shadow: Color(0xffffffff),
       scrim: Color(0xff000000),
       inverseSurface: Color(0xffe5e2e2),
       inversePrimary: Color(0xff006e24),
@@ -335,22 +335,37 @@ class MaterialTheme {
     return theme(darkHighContrastScheme());
   }
 
-
   ThemeData theme(ColorScheme colorScheme) => ThemeData(
-     useMaterial3: true,
-     brightness: colorScheme.brightness,
-     colorScheme: colorScheme,
-     textTheme: textTheme.apply(
-       bodyColor: colorScheme.onSurface,
-       displayColor: colorScheme.onSurface,
-     ),
-     scaffoldBackgroundColor: colorScheme.surface,
-     canvasColor: colorScheme.surface,
-  );
+        useMaterial3: true,
+        brightness: colorScheme.brightness,
+        colorScheme: colorScheme,
+        textTheme: textTheme.apply(
+          bodyColor: colorScheme.onSurface,
+          displayColor: colorScheme.onSurface,
+        ),
+        scaffoldBackgroundColor: colorScheme.surface,
+        canvasColor: colorScheme.surface,
+        drawerTheme: const DrawerThemeData(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(32),
+                  bottomRight: Radius.circular(32))),
+          elevation: 20,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: colorScheme.onTertiary,
+          foregroundColor: colorScheme.onTertiary,
+          elevation: 30,
+          surfaceTintColor: Colors.transparent,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          shadowColor: colorScheme.primaryContainer.withOpacity(0.12),
+        ),
+      );
 
-
-  List<ExtendedColor> get extendedColors => [
-  ];
+  List<ExtendedColor> get extendedColors => [];
 }
 
 class ExtendedColor {
