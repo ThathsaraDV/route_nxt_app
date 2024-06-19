@@ -3,6 +3,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:route_nxt/config/route/go_router_provider.dart';
 import 'package:route_nxt/features/account/presentation/bloc/signin/sign_in_cubit.dart';
 import 'package:route_nxt/features/account/presentation/bloc/signup/sign_up_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final sl = GetIt.instance;
@@ -15,6 +16,8 @@ Future<void> initializeDependencies() async {
       SignInCubit(sl(), await SharedPreferences.getInstance()));
   sl.registerSingleton<SignUpCubit>(
       SignUpCubit(await SharedPreferences.getInstance()));
+  sl.registerSingleton<DashboardCubit>(
+      DashboardCubit(await SharedPreferences.getInstance()));
 
   sl.registerSingleton<SharedPreferences>(
       await SharedPreferences.getInstance());
