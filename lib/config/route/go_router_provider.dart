@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -8,10 +10,11 @@ import 'package:route_nxt/features/account/presentation/bloc/signup/sign_up_cubi
 import 'package:route_nxt/features/account/presentation/pages/signin/sign_in_page.dart';
 import 'package:route_nxt/features/account/presentation/pages/signup/sign_up_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/reminder/reminder_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/dashboard/dashboard_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/home/home_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/map/map_page.dart';
-import 'package:route_nxt/features/dashboard/presentation/pages/transactions/transactions_page.dart';
+import 'package:route_nxt/features/dashboard/presentation/pages/reminder/reminder_page.dart';
 
 class GoRouterProvider {
   GoRouter getRoute() {
@@ -93,9 +96,12 @@ class GoRouterProvider {
             StatefulShellBranch(
               routes: <RouteBase>[
                 GoRoute(
-                  path: '/transaction',
+                  path: '/reminder',
                   builder: (BuildContext context, GoRouterState state) =>
-                      const TransactionPage(),
+                      BlocProvider<ReminderCubit>.value(
+                    value: sl<ReminderCubit>(),
+                    child: const ReminderPage(),
+                  ),
                 ),
               ],
             ),

@@ -55,6 +55,11 @@ dependencies:
   flutter_staggered_grid_view: ^0.7.0
   smooth_page_indicator: ^1.1.0
   fl_chart: ^0.68.0
+  timezone: ^0.9.4
+  flutter_timezone: ^1.0.8
+  omni_datetime_picker: ^2.0.2
+  sqflite: ^2.3.3+1
+  floor: ^1.5.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +70,7 @@ dev_dependencies:
   retrofit_generator: ^8.1.0
   build_runner: ^2.4.11
   flutter_launcher_icons: ^0.13.1
+  floor_generator: ^1.5.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
