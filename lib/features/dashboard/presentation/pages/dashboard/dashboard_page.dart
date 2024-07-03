@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:go_router/go_router.dart';
-import 'package:badges/badges.dart' as badges;
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
@@ -19,10 +19,14 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPage extends State<DashboardPage> {
   bool isSideMenuOpen = true;
+  bool darkMode = false;
 
   @override
   void initState() {
     super.initState();
+    setState(() {
+      darkMode = context.read<ThemeBloc>().getStoredDarkMode();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardCubit>().getAccountDetails();
     });
@@ -32,6 +36,23 @@ class _DashboardPage extends State<DashboardPage> {
     setState(() {
       isSideMenuOpen = !isSideMenuOpen;
     });
+  }
+
+  final WidgetStateProperty<Icon> thumbIcon =
+      WidgetStateProperty.resolveWith<Icon>(
+    (Set<WidgetState> states) {
+      if (states.contains(WidgetState.selected)) {
+        return const Icon(Icons.dark_mode);
+      }
+      return const Icon(Icons.light_mode);
+    },
+  );
+
+  void onChangeThemeMode(bool value) {
+    setState(() {
+      darkMode = value;
+    });
+    context.read<ThemeBloc>().add(ThemeEvent.themeChanged(value));
   }
 
   @override
@@ -65,23 +86,13 @@ class _DashboardPage extends State<DashboardPage> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       actions: <Widget>[
-                        badges.Badge(
-                          badgeContent: Text(
-                            '10',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontSize: 8),
-                          ),
-                          position: badges.BadgePosition.topEnd(top: 6, end: 8),
-                          badgeStyle: const badges.BadgeStyle(
-                            badgeColor: CommonStyles.errorMsgBgColor,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.notifications,
-                            ),
-                            onPressed: () {},
-                          ),
+                        IconButton(
+                          icon: thumbIcon.resolve({
+                            darkMode
+                                ? WidgetState.selected
+                                : WidgetState.pressed
+                          }),
+                          onPressed: () => onChangeThemeMode(!darkMode),
                         ),
                         IconButton(
                           icon: const Icon(
@@ -382,7 +393,7 @@ class _DashboardPage extends State<DashboardPage> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
         BottomNavigationBarItem(
-            icon: Icon(Icons.payments_rounded), label: 'Transactions'),
+            icon: Icon(Icons.alarm_rounded), label: 'Reminders'),
         BottomNavigationBarItem(
             icon: Icon(Icons.near_me_rounded), label: 'Navigate'),
       ],

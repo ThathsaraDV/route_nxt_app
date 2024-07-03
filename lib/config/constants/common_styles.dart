@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:route_nxt/config/global/app_settings.dart';
 
 class CommonStyles {
-
   static const Color successMsgBgColor = Color(0xFF14A44D);
   static const Color successDarkColor = Color(0xFF2e7d32);
   static const Color warningMsgBgColor = Color(0xFFFFB300);
@@ -26,6 +25,24 @@ class CommonStyles {
               .colorScheme
               .primary,
       minimumSize: Size.fromHeight(minimumSizeHeight ?? 50),
+      shape: RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(28.0), // Adjust the radius as needed
+      ),
+      // fixedSize: fixedSize ?? const Size(280, 56),
+    );
+  }
+
+  static ButtonStyle secondaryButtonStyles(
+      {Color? backgroundColor,
+      double? minimumSizeWidth,
+      double? minimumSizeHeight}) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor ??
+          Theme.of(AppSettings.rootNavigatorKey.currentContext!)
+              .colorScheme
+              .primary,
+      minimumSize: Size(minimumSizeWidth ?? 120, minimumSizeHeight ?? 50),
       shape: RoundedRectangleBorder(
         borderRadius:
             BorderRadius.circular(28.0), // Adjust the radius as needed
@@ -76,7 +93,8 @@ class CommonStyles {
       borderSide: BorderSide(
         color: Theme.of(AppSettings.rootNavigatorKey.currentContext!)
             .colorScheme
-            .primary.withOpacity(0.2),
+            .primary
+            .withOpacity(0.2),
         width: 1,
       ),
       borderRadius: const BorderRadius.all(Radius.circular(12.0)),
@@ -88,7 +106,8 @@ class CommonStyles {
       borderSide: BorderSide(
         color: Theme.of(AppSettings.rootNavigatorKey.currentContext!)
             .colorScheme
-            .primary.withOpacity(0.5),
+            .primary
+            .withOpacity(0.5),
         width: 1.15,
       ),
       borderRadius: const BorderRadius.all(Radius.circular(12.0)),
@@ -106,5 +125,4 @@ class CommonStyles {
       borderRadius: const BorderRadius.all(Radius.circular(12.0)),
     );
   }
-
 }

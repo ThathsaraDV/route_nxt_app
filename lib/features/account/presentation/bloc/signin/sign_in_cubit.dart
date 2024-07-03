@@ -1,9 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:route_nxt/core/enums/signin_status.dart';
 import 'package:route_nxt/core/utility/app_constant.dart';
+import 'package:route_nxt/core/utility/service_locator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 part 'sign_in_state.dart';
@@ -30,6 +32,16 @@ class SignInCubit extends Cubit<SignInState> {
     try {
       emit(const SignInState.initialLogin());
       emit(const SignInState.loading());
+      await sl
+          .get<FlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+      await sl
+          .get<FlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestExactAlarmsPermission();
       emit(const SignInState.success(SignInStatus.success));
     } catch (e) {
       emit(const SignInState.error("System Error"));
