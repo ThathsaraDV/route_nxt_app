@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +8,7 @@ import 'package:route_nxt/features/account/presentation/bloc/signup/sign_up_cubi
 import 'package:route_nxt/features/account/presentation/pages/signin/sign_in_page.dart';
 import 'package:route_nxt/features/account/presentation/pages/signup/sign_up_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/reminder/reminder_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/dashboard/dashboard_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/home/home_page.dart';
@@ -110,7 +109,10 @@ class GoRouterProvider {
                 GoRoute(
                   path: '/map',
                   builder: (BuildContext context, GoRouterState state) =>
-                      const MapPage(),
+                  BlocProvider<MapCubit>.value(
+                    value: sl<MapCubit>(),
+                    child: const MapPage(),
+                  ),
                 ),
               ],
             ),
