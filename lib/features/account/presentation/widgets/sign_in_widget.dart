@@ -271,8 +271,7 @@ class _SignInWidgetState extends State<SignInWidget> {
   }
 
   _signInAppBar() {
-    Brightness brightness = MediaQuery.of(context).platformBrightness;
-    bool isDarkMode = brightness == Brightness.dark;
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     double screenHeight = MediaQuery.of(context).size.height;
     return SizedBox(
       height: screenHeight * 0.325,

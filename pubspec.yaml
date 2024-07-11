@@ -60,6 +60,14 @@ dependencies:
   omni_datetime_picker: ^2.0.2
   sqflite: ^2.3.3+1
   floor: ^1.5.0
+  google_maps_flutter: ^2.7.0
+  flutter_polyline_points: ^2.1.0
+  location: ^7.0.0
+  google_maps_flutter_platform_interface: ^2.8.0
+  google_maps_flutter_android: ^2.11.1
+  geocoding: ^3.0.0
+  lottie: ^3.1.2
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +100,8 @@ flutter:
     - asset/images/
     - asset/svg/snackBar/
     - asset/font/
+    - asset/json/
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
