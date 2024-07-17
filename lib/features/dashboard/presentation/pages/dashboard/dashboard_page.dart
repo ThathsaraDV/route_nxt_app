@@ -1,8 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/core/utility/service_locator.dart';
+import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
@@ -58,79 +61,105 @@ class _DashboardPage extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     double appBarHeight = 64.0;
-    return BlocConsumer<DashboardCubit, DashboardState>(
-      listener: (context, state) {
-        state.maybeWhen(
-            stepLoadingFailed: (message) {
-              CustomSnackBar.showSnackBar(null, message, 'error');
+    return StreamBuilder<User?>(
+        stream: sl.get<FirebaseAuth>().authStateChanges(),
+        builder: (context, snapshot) {
+          return BlocConsumer<AuthBloc, AuthState>(
+            listener: (context, authState) {
+              authState.maybeWhen(
+                  logoutSuccess: (success) {
+                    if (null == sl.get<FirebaseAuth>().currentUser) {
+                      GoRouter.of(context).go('/login');
+                    }
+                  },
+                  orElse: () {});
             },
-            loggedOut: () {
-              GoRouter.of(context).pushReplacement('/login');
-            },
-            logoutFailed: (message) {
-              CustomSnackBar.showSnackBar(null, message, 'error');
-              GoRouter.of(context).pushReplacement('/login');
-            },
-            stepLoaded: () {},
-            orElse: () {});
-      },
-      builder: (context, state) {
-        final MediaQueryData data = MediaQuery.of(context);
-        return MediaQuery(
-            data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
-            child: Scaffold(
-                appBar: PreferredSize(
-                    preferredSize: Size.fromHeight(appBarHeight),
-                    child: AppBar(
-                      iconTheme: IconThemeData(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      actions: <Widget>[
-                        IconButton(
-                          icon: thumbIcon.resolve({
-                            darkMode
-                                ? WidgetState.selected
-                                : WidgetState.pressed
+            builder: (context, authState) {
+              final MediaQueryData data = MediaQuery.of(context);
+              return MediaQuery(
+                  data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
+                  child: Scaffold(
+                      appBar: PreferredSize(
+                          preferredSize: Size.fromHeight(appBarHeight),
+                          child: AppBar(
+                            iconTheme: IconThemeData(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            actions: <Widget>[
+                              IconButton(
+                                icon: thumbIcon.resolve({
+                                  darkMode
+                                      ? WidgetState.selected
+                                      : WidgetState.pressed
+                                }),
+                                onPressed: () => onChangeThemeMode(!darkMode),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.person,
+                                ),
+                                onPressed: () {},
+                              )
+                            ],
+                          )),
+                      body: authState.maybeWhen(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          orElse: () {
+                            return BlocConsumer<DashboardCubit, DashboardState>(
+                              listener: (context, state) {
+                                state.maybeWhen(
+                                    stepLoadingFailed: (message) {
+                                      CustomSnackBar.showSnackBar(
+                                          null, message, 'error');
+                                    },
+                                    loggedOut: () {
+                                      GoRouter.of(context)
+                                          .pushReplacement('/login');
+                                    },
+                                    logoutFailed: (message) {
+                                      CustomSnackBar.showSnackBar(
+                                          null, message, 'error');
+                                      GoRouter.of(context)
+                                          .pushReplacement('/login');
+                                    },
+                                    stepLoaded: () {},
+                                    orElse: () {});
+                              },
+                              builder: (context, state) {
+                                return state.maybeWhen(
+                                    initial: () => const SplashScreen(),
+                                    stepLoading: () => const Center(
+                                        child: CircularProgressIndicator()),
+                                    stepLoaded: () {
+                                      return widget.navigationShell;
+                                    },
+                                    stepLoadingFailed: (e) => const Center(
+                                        child: CircularProgressIndicator()),
+                                    loggingOut: () => const Center(
+                                        child: CircularProgressIndicator()),
+                                    loggedOut: () => const Center(
+                                        child: CircularProgressIndicator()),
+                                    logoutFailed: (message) => const Center(
+                                        child: CircularProgressIndicator()),
+                                    orElse: () {
+                                      return widget.navigationShell;
+                                    });
+                              },
+                            );
                           }),
-                          onPressed: () => onChangeThemeMode(!darkMode),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.person,
-                          ),
-                          onPressed: () {},
-                        )
-                      ],
-                    )),
-                body: state.maybeWhen(
-                    initial: () => const SplashScreen(),
-                    stepLoading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    stepLoaded: () {
-                      return widget.navigationShell;
-                    },
-                    stepLoadingFailed: (e) =>
-                        const Center(child: CircularProgressIndicator()),
-                    loggingOut: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    loggedOut: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    logoutFailed: (message) =>
-                        const Center(child: CircularProgressIndicator()),
-                    orElse: () {
-                      return widget.navigationShell;
-                    }),
-                drawer: drawer(state),
-                bottomNavigationBar: state.maybeWhen(
-                    loggingOut: () => const SizedBox.shrink(),
-                    orElse: () {
-                      return bottomNavBar();
-                    })));
-      },
-    );
+                      drawer: drawer(authState),
+                      bottomNavigationBar: authState.maybeWhen(
+                          loading: () => const SizedBox.shrink(),
+                          orElse: () {
+                            return bottomNavBar();
+                          })));
+            },
+          );
+        });
   }
 
-  Widget drawer(DashboardState state) {
+  Widget drawer(AuthState authState) {
     return Container(
       decoration: BoxDecoration(
         gradient: CommonStyles.lightCardGradient1,
@@ -219,8 +248,8 @@ class _DashboardPage extends State<DashboardPage> {
                 ],
               ),
             ),
-            state.maybeWhen(
-                loggingOut: () => Center(
+            authState.maybeWhen(
+                loading: () => Center(
                       child: Transform.scale(
                         scale: 1,
                         child: const CircularProgressIndicator(),
@@ -360,7 +389,7 @@ class _DashboardPage extends State<DashboardPage> {
                           ),
                         ),
                         onTap: () async {
-                          // context.read<DashboardCubit>().logout();
+                          sl.get<AuthBloc>().add(const AuthEvent.logout());
                         },
                       ),
                     ],

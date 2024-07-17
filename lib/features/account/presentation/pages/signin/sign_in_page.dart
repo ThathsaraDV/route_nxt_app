@@ -1,9 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:route_nxt/features/account/presentation/bloc/signin/sign_in_cubit.dart';
+import 'package:route_nxt/core/utility/service_locator.dart';
 import 'package:route_nxt/features/account/presentation/widgets/sign_in_widget.dart';
-import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
+import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 
 class SignInPage extends StatefulWidget {
@@ -14,69 +15,81 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPage extends State<SignInPage> {
-  final usernameController = TextEditingController();
+  final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SignInCubit>().init();
-    });
   }
 
   @override
   void dispose() {
     super.dispose();
-    usernameController.dispose();
+    emailController.dispose();
     passwordController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<SignInCubit, SignInState>(
-      listener: (context, state) {
-        state.maybeWhen(
-            error: (message) {
-              CustomSnackBar.showSnackBar(null, message, 'error');
+    return StreamBuilder<User?>(
+        stream: sl.get<FirebaseAuth>().authStateChanges(),
+        builder: (context, snapshot) {
+          return BlocConsumer<AuthBloc, AuthState>(
+            listener: (context, state) {
+              state.maybeWhen(
+                  initial: () {
+                    // if (snapshot.hasData) {
+                    //   GoRouter.of(context).go('/home');
+                    // }
+                  },
+                  signInFailure: (message) {
+                    CustomSnackBar.showSnackBar(null, message, 'error');
+                  },
+                  signInSuccess: (message) {
+                    if (snapshot.hasData) {
+                      GoRouter.of(context).go('/home');
+                    }
+                  },
+                  bioAuthSuccess: (bool success) {
+                    if (snapshot.hasData) {
+                      GoRouter.of(context).go('/home');
+                    } else {
+                      CustomSnackBar.showSnackBar(null, "Please login again. Session invalid.", 'warning');
+                    }
+                  },
+                  bioAuthFailure: (String message) {
+                    CustomSnackBar.showSnackBar(null, message, 'error');
+                  },
+                  navigate: (String path) {
+                    GoRouter.of(context).push(path);
+                  },
+                  orElse: () {});
             },
-            success: (message) {
-              GoRouter.of(context).push('/home');
+            builder: (context, state) {
+              final MediaQueryData data = MediaQuery.of(context);
+              return MediaQuery(
+                data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
+                child: Scaffold(
+                  body: state.maybeWhen(
+                      initial: () => signInWidget(context),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      signInFailure: (e) => signInWidget(context),
+                      signInSuccess: (newNumber) {
+                        return signInWidget(context);
+                      },
+                      orElse: () => signInWidget(context)),
+                ),
+              );
             },
-            alreadyLoggedIn: () {
-              GoRouter.of(context).push('/home');
-            },
-            signUp: () {
-              GoRouter.of(context).push('/signup');
-            },
-            orElse: () {});
-      },
-      builder: (context, state) {
-        final MediaQueryData data = MediaQuery.of(context);
-        return MediaQuery(
-          data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
-          child: Scaffold(
-            body: state.when(
-              signUp: () => signInWidget(context),
-              alreadyLoggedIn: () => signInWidget(context),
-              initial: () => const SplashScreen(),
-              initialLogin: () => signInWidget(context),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e) => signInWidget(context),
-              success: (newNumber) {
-                return signInWidget(context);
-              },
-            ),
-            // bottomNavigationBar: _bottomNavBar()
-          ),);
-      },
-    );
+          );
+        });
   }
 
   Widget signInWidget(BuildContext context) {
     return SignInWidget(
-        usernameController: usernameController,
+        emailController: emailController,
         passwordController: passwordController);
   }
-
 }

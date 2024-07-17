@@ -1,10 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
-import 'package:route_nxt/features/account/presentation/bloc/signup/sign_up_cubit.dart';
+import 'package:route_nxt/core/utility/service_locator.dart';
 import 'package:route_nxt/features/account/presentation/widgets/signup_widget.dart';
-import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
+import 'package:route_nxt/features/common/domain/entity/user_model.dart';
+import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -17,18 +19,15 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPage extends State<SignUpPage> {
   final TextEditingController controllerFullName = TextEditingController();
   final TextEditingController controllerEmail = TextEditingController();
-  final TextEditingController controllerUsername = TextEditingController();
   final TextEditingController controllerPassword = TextEditingController();
   final TextEditingController controllerRetypePassword =
       TextEditingController();
-  String mobileNumber = '';
   final signUpFormKey = GlobalKey<FormState>();
   bool isContinueDisabled = false;
 
   @override
   void initState() {
     super.initState();
-    context.read<SignUpCubit>().init();
   }
 
   @override
@@ -36,43 +35,45 @@ class _SignUpPage extends State<SignUpPage> {
     super.dispose();
     controllerFullName.dispose();
     controllerEmail.dispose();
-    controllerUsername.dispose();
     controllerPassword.dispose();
     controllerRetypePassword.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<SignUpCubit, SignUpState>(
-      listener: (context, state) {
-        state.maybeWhen(
-            error: (message) {
-              CustomSnackBar.showSnackBar(null, message, 'error');
+    return StreamBuilder<User?>(
+        stream: sl.get<FirebaseAuth>().authStateChanges(),
+        builder: (context, snapshot) {
+          return BlocConsumer<AuthBloc, AuthState>(
+            listener: (context, state) {
+              state.maybeWhen(
+                  signUpFailure: (message) {
+                    CustomSnackBar.showSnackBar(null, message, 'error');
+                  },
+                  signUpSuccess: (message) {
+                    if (snapshot.hasData) {
+                      GoRouter.of(context).go('/login');
+                    }
+                    if (snapshot.hasError) {
+                      CustomSnackBar.showSnackBar(
+                          null, snapshot.error.toString(), 'error');
+                    }
+                  },
+                  orElse: () {});
             },
-            success: (message) {
-              GoRouter.of(context).go('/login');
-            },
-            orElse: () {});
-      },
-      builder: (context, state) {
-        final MediaQueryData data = MediaQuery.of(context);
-        return MediaQuery(
-            data: data.copyWith(textScaleFactor: 1.0),
-            child: Container(
-                decoration: BoxDecoration(
-                  // gradient: isDarkMode ? AppColor.darkCardGradient : AppColor.lightCardGradient,
-                ),
+            builder: (context, state) {
+              final MediaQueryData data = MediaQuery.of(context);
+              return MediaQuery(
+                  data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
                   child: Scaffold(
-                    // backgroundColor: isDarkMode ? Colors.black.withOpacity(0.2) : Colors.white.withOpacity(0.35),
                       appBar: AppBar(
-                        // backgroundColor: isDarkMode
-                        //     ? AppColor.darkColor_3
-                        //     : AppColor.shadingColor_3,
+                        iconTheme: IconThemeData(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         leading: IconButton(
-                          icon: Icon(Icons.arrow_back_rounded,
-                              // color: isDarkMode
-                              //     ? AppColor.mainColor
-                              //     : AppColor.btnTxtColor
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            size: 24,
                           ),
                           iconSize: 18,
                           onPressed: () {
@@ -83,66 +84,55 @@ class _SignUpPage extends State<SignUpPage> {
                           "SIGN UP",
                           style: TextStyle(
                               fontSize: 26,
-                              // letterSpacing: 1.5,
-                              // wordSpacing: 4,
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w700),
                         ),
                         centerTitle: true,
                       ),
-                      body: state.when(
-                        initial: () => const SplashScreen(),
-                        signingUp: () => signUpWidget(context),
-                        loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                        error: (e) => signUpWidget(context),
-                        success: (newNumber) {
-                          return signUpWidget(context);
-                        },
-                      ),
-                      bottomNavigationBar: _bottomNavBar()))
-        );
-      },
-    );
-  }
-
-  void onDataReceived(String mobileNumber) {
-    setState(() {
-      this.mobileNumber = mobileNumber;
-    });
+                      body: state.maybeWhen(
+                          initial: () => signUpWidget(context),
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          signUpSuccess: (e) => signUpWidget(context),
+                          signUpFailure: (message) {
+                            return signUpWidget(context);
+                          },
+                          orElse: () => signUpWidget(context)),
+                      bottomNavigationBar: _bottomNavBar()));
+            },
+          );
+        });
   }
 
   Widget signUpWidget(BuildContext context) {
     return SignUpWidget(
         controllerFullName: controllerFullName,
         controllerEmail: controllerEmail,
-        controllerUsername: controllerUsername,
         controllerPassword: controllerPassword,
         controllerRetypePassword: controllerRetypePassword,
-        mobileNumber: mobileNumber,
-        signUpFormKey: signUpFormKey,
-        callback: onDataReceived);
+        signUpFormKey: signUpFormKey);
   }
 
   _bottomNavBar() {
     return Container(
       padding: const EdgeInsets.all(20),
       child: ElevatedButton(
-        onPressed: isContinueDisabled ? null : () {
-          if (signUpFormKey.currentState!.validate()) {
-            context.read<SignUpCubit>().signUp(
-                mobileNumber: mobileNumber,
-                username: controllerUsername.value.text,
-                email: controllerEmail.value.text,
-                password: controllerPassword.value.text
-            );
-          }
-        },
+        onPressed: isContinueDisabled
+            ? null
+            : () {
+                if (signUpFormKey.currentState!.validate()) {
+                  context.read<AuthBloc>().add(AuthEvent.signUp(UserModel(
+                      id: '',
+                      email: controllerEmail.value.text,
+                      password: controllerPassword.value.text,
+                      displayName: controllerFullName.value.text)));
+                }
+              },
         style: CommonStyles.mainButtonStyles(),
         child: Text('Sign Up'.toUpperCase(),
-            style: CommonStyles.mainButtonTextStyle(color: Theme.of(context).colorScheme.onPrimary)),
+            style: CommonStyles.mainButtonTextStyle(
+                color: Theme.of(context).colorScheme.onPrimary)),
       ),
     );
   }
-
 }

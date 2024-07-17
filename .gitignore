@@ -54,3 +54,10 @@ app.*.map.json
 #Gradle
 android/secrets.properties
 /.env
+/android/app/google-services.json
+
+#Firebase configurations
+/firebase.json
+/devtools_options.yaml
+/android/app/local.properties
+/android/app/.gradle/config.properties
