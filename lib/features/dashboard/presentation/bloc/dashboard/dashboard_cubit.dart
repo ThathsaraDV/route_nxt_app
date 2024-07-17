@@ -23,14 +23,4 @@ class DashboardCubit extends Cubit<DashboardState> {
     }
   }
 
-  Future<void> logout() async {
-    try {
-      emit(const DashboardState.loggingOut());
-
-      emit(const DashboardState.loggedOut());
-    } on DioException catch (e) {
-      emit(const DashboardState.logoutFailed("Internal Server Error"));
-    }
-  }
-
 }

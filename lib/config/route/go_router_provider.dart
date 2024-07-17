@@ -3,10 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:route_nxt/config/global/app_settings.dart';
 import 'package:route_nxt/core/utility/service_locator.dart';
-import 'package:route_nxt/features/account/presentation/bloc/signin/sign_in_cubit.dart';
-import 'package:route_nxt/features/account/presentation/bloc/signup/sign_up_cubit.dart';
 import 'package:route_nxt/features/account/presentation/pages/signin/sign_in_page.dart';
 import 'package:route_nxt/features/account/presentation/pages/signup/sign_up_page.dart';
+import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/reminder/reminder_cubit.dart';
@@ -26,9 +25,9 @@ class GoRouterProvider {
             builder: (BuildContext context, GoRouterState state) =>
                 MultiBlocProvider(
                   providers: [
-                    BlocProvider<SignInCubit>.value(
-                      value: sl<SignInCubit>(),
-                    )
+                    BlocProvider<AuthBloc>.value(
+                      value: sl<AuthBloc>(),
+                    ),
                   ],
                   child: const SignInPage(),
                 )),
@@ -40,8 +39,8 @@ class GoRouterProvider {
                 key: state.pageKey,
                 child: MultiBlocProvider(
                   providers: [
-                    BlocProvider<SignUpCubit>.value(
-                      value: sl<SignUpCubit>(),
+                    BlocProvider<AuthBloc>.value(
+                      value: sl<AuthBloc>(),
                     ),
                   ],
                   child: const SignUpPage(),
@@ -70,6 +69,9 @@ class GoRouterProvider {
               key: state.pageKey,
               child: MultiBlocProvider(
                 providers: [
+                  BlocProvider<AuthBloc>.value(
+                    value: sl<AuthBloc>(),
+                  ),
                   BlocProvider<DashboardCubit>.value(
                     value: sl<DashboardCubit>(),
                   )

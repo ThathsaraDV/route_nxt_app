@@ -6,22 +6,16 @@ import 'package:route_nxt/config/constants/common_styles.dart';
 class SignUpWidget extends StatefulWidget {
   final TextEditingController controllerFullName;
   final TextEditingController controllerEmail;
-  final TextEditingController controllerUsername;
   final TextEditingController controllerPassword;
   final TextEditingController controllerRetypePassword;
-  String mobileNumber;
-  final Function(String mobileNumber) callback;
   final GlobalKey<FormState> signUpFormKey;
 
-  SignUpWidget(
+  const SignUpWidget(
       {super.key,
       required this.controllerFullName,
       required this.controllerEmail,
-      required this.controllerUsername,
       required this.controllerPassword,
       required this.controllerRetypePassword,
-      required this.callback,
-      required this.mobileNumber,
       required this.signUpFormKey});
 
   @override
@@ -50,6 +44,7 @@ class _SignUpWidgetState extends State<SignUpWidget> {
           key: widget.signUpFormKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.max,
             children: <Widget>[
               Text(
@@ -138,7 +133,6 @@ class _SignUpWidgetState extends State<SignUpWidget> {
                       const SizedBox(
                         height: 16,
                       ),
-
                       SizedBox(
                           child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,65 +199,6 @@ class _SignUpWidgetState extends State<SignUpWidget> {
                       const SizedBox(
                         height: 16,
                       ),
-
-                      RichText(
-                        textAlign: TextAlign.justify,
-                        text: TextSpan(
-                          style: Theme.of(context).textTheme.labelLarge,
-                          children: <TextSpan>[
-                            const TextSpan(
-                              text: "Username",
-                            ),
-                            TextSpan(
-                              text: " *",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.red.withOpacity(0.85)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 3,
-                      ),
-                      TextFormField(
-                        controller: widget.controllerUsername,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Cannot be empty.";
-                          }
-                          if (value.length < 4) {
-                            return 'Minimum length is 4 characters.';
-                          }
-                          if (value.length > 20) {
-                            return 'Maximum length is 20 characters.';
-                          }
-                          return null;
-                        },
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-zA-Z0-9_\-.+@]')),
-                        ],
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w500),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.all(12),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.1),
-                          enabledBorder: CommonStyles.buildSharedInputBorder(),
-                          focusedBorder: CommonStyles.buildFocusedInputBorder(),
-                          border: CommonStyles.buildSharedInputBorder(),
-                          hintText: 'Enter your username',
-                        ),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                      const SizedBox(
-                        height: 16,
-                      ),
-
                       //Password
                       SizedBox(
                           child: Row(
@@ -390,7 +325,6 @@ class _SignUpWidgetState extends State<SignUpWidget> {
                       const SizedBox(
                         height: 16,
                       ),
-
                       //Confirm Password
                       SizedBox(
                           child: Row(
@@ -501,7 +435,6 @@ class _SignUpWidgetState extends State<SignUpWidget> {
                         ),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
-
                       const SizedBox(
                         height: 16,
                       ),

@@ -1,0 +1,90 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:route_nxt/features/common/data/data_sources/auth_service.dart';
+import 'package:route_nxt/features/common/domain/entity/user_model.dart';
+
+part 'auth_event.dart';
+
+part 'auth_state.dart';
+
+part 'auth_bloc.freezed.dart';
+
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final AuthService authService;
+  final LocalAuthentication auth;
+
+  AuthBloc(this.authService, this.auth) : super(const AuthState.initial()) {
+    on<AuthEvent>((event, emit) async {
+      await event.when(
+          signIn: (String email, String password) async {
+            try {
+              emit(const AuthState.loading());
+              await authService.logInWithEmailAndPassword(
+                  email: email, password: password);
+              // await Future.delayed(const Duration(seconds: 2));
+              emit(AuthState.signInSuccess(UserModel.withEmailAndPassword(
+                  email: email, password: password)));
+            } on FirebaseAuthException catch (e) {
+              emit(AuthState.signInFailure(
+                  e.message ?? "Internal Server Error"));
+            } catch (e) {
+              emit(const AuthState.signInFailure('Internal Server Error'));
+            }
+          },
+          bioAuth: () async {
+            try {
+              emit(const AuthState.loading());
+              var deviceSupported = await auth.isDeviceSupported();
+              if (!deviceSupported) {
+                emit(const AuthState.bioAuthFailure("Device Not Supported"));
+              } else {
+                bool authenticated = await auth.authenticate(
+                  localizedReason:
+                      "Subscribe or you will never find any answer",
+                  options: const AuthenticationOptions(
+                      stickyAuth: false, biometricOnly: false),
+                );
+                if (authenticated) {
+                  bool isRefreshed = true;
+                  if (isRefreshed) {
+                    emit(AuthState.bioAuthSuccess(isRefreshed));
+                  } else {
+                    emit(const AuthState.bioAuthFailure(
+                        "Please login. Session invalid."));
+                  }
+                } else {
+                  emit(const AuthState.bioAuthFailure("Try again"));
+                }
+              }
+            } on PlatformException catch (e) {
+              emit(const AuthState.bioAuthFailure("Device Not Supported"));
+            }
+          },
+          signUp: (UserModel user) async {
+            try {
+              emit(const AuthState.loading());
+              await authService.signUpUser(user.email!, user.password!);
+              emit(AuthState.signUpSuccess(user));
+            } on FirebaseAuthException catch (e) {
+              emit(AuthState.signUpFailure(
+                  e.message ?? "Internal Server Error"));
+            } catch (e) {
+              emit(const AuthState.signUpFailure('Internal Server Error'));
+            }
+          },
+          logout: () async {
+            emit(const AuthState.loading());
+            // await Future.delayed(const Duration(seconds: 2));
+            await authService.signOutUser();
+            emit(const AuthState.logoutSuccess(true));
+          },
+          navigateTo: (String path) {
+            emit(const AuthState.loading());
+            emit(AuthState.navigate(path));
+          });
+    });
+  }
+}
