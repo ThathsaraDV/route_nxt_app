@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:go_router/go_router.dart';
-import 'package:route_nxt/config/constants/common_styles.dart';
 import 'package:route_nxt/core/utility/service_locator.dart';
 import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
@@ -162,7 +161,14 @@ class _DashboardPage extends State<DashboardPage> {
   Widget drawer(AuthState authState) {
     return Container(
       decoration: BoxDecoration(
-        gradient: CommonStyles.lightCardGradient1,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).colorScheme.onTertiary,
+            Theme.of(context).colorScheme.surface,
+          ],
+        ),
         borderRadius: const BorderRadius.only(
             topRight: Radius.circular(32), bottomRight: Radius.circular(32)),
       ),
@@ -307,7 +313,7 @@ class _DashboardPage extends State<DashboardPage> {
                             right: 4.5,
                           ),
                           child: const Icon(
-                            Icons.inventory_2_rounded,
+                            Icons.shelves,
                             size: 20,
                           ),
                         ),
@@ -316,11 +322,10 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/inventory');
+                          GoRouter.of(context).go('/inventory');
                         },
                       ),
                       ListTile(
@@ -339,11 +344,10 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/transactions');
+                          GoRouter.of(context).go('/transactions');
                         },
                       ),
                       ListTile(
@@ -354,20 +358,19 @@ class _DashboardPage extends State<DashboardPage> {
                             left: 10,
                           ),
                           child: const Icon(
-                            Icons.shelves,
+                            Icons.inventory_2_rounded,
                             size: 20,
                           ),
                         ),
                         title: const Text(
-                          'Products',
+                          'New Product',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/products');
+                          GoRouter.of(context).go('/newProduct');
                         },
                       ),
                       ListTile(
@@ -385,7 +388,6 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () async {

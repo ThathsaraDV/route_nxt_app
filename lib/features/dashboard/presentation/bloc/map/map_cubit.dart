@@ -15,35 +15,31 @@ class MapCubit extends Cubit<MapState> {
     try {
       emit(const MapState.loading());
       Location location = Location();
-      var hasPermission = await location.hasPermission();
-      if (PermissionStatus.denied == hasPermission) {
-        hasPermission = await location.requestPermission();
-        if (PermissionStatus.denied == hasPermission) {
+      PermissionStatus permissionStatus = await location.hasPermission();
+      if (permissionStatus == PermissionStatus.denied) {
+        permissionStatus = await location.requestPermission();
+        if (permissionStatus == PermissionStatus.denied) {
           emit(const MapState.loadingFailed("Please grant permission"));
+          return;
         }
       }
-      var serviceEnabled = await location.serviceEnabled();
-      if (serviceEnabled) {
-        getCurrentLocation(location);
-      } else {
-        var bool = await location.requestService();
-        if (bool) {
-          getCurrentLocation(location);
-        } else {
-          const MapState.loadingFailed("Please enable location");
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          emit(const MapState.loadingFailed("Please enable location"));
+          return;
         }
       }
+      getCurrentLocation(location);
     } catch (e) {
       emit(const MapState.loadingFailed("Map loading failed"));
     }
   }
 
-  void getCurrentLocation(Location location) {
-    location.getLocation().then(
-      (currLocation) {
-        emit(MapState.loaded(currLocation, location));
-      },
-    );
+  Future<void> getCurrentLocation(Location location) async {
+    var currentLocation = await location.getLocation();
+    emit(MapState.loaded(currentLocation, location));
   }
 
 }

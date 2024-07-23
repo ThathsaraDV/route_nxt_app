@@ -11,4 +11,6 @@ class AuthEvent with _$AuthEvent {
   const factory AuthEvent.logout() = _Logout;
 
   const factory AuthEvent.navigateTo(String path) = _NavigateTo;
+
+  const factory AuthEvent.afterSignIn(UserModel user) = _AfterSignIn;
 }

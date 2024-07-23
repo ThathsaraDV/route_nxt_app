@@ -13,6 +13,10 @@ import 'package:route_nxt/features/dashboard/presentation/pages/dashboard/dashbo
 import 'package:route_nxt/features/dashboard/presentation/pages/home/home_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/map/map_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/reminder/reminder_page.dart';
+import 'package:route_nxt/features/inventory/presentation/pages/inventory.dart';
+import 'package:route_nxt/features/inventory/presentation/pages/new_product.dart';
+import 'package:route_nxt/features/inventory/presentation/pages/transactions.dart';
+import 'package:route_nxt/features/inventory/presentation/pages/update_product.dart';
 
 class GoRouterProvider {
   GoRouter getRoute() {
@@ -111,7 +115,7 @@ class GoRouterProvider {
                 GoRoute(
                   path: '/map',
                   builder: (BuildContext context, GoRouterState state) =>
-                  BlocProvider<MapCubit>.value(
+                      BlocProvider<MapCubit>.value(
                     value: sl<MapCubit>(),
                     child: const MapPage(),
                   ),
@@ -119,6 +123,130 @@ class GoRouterProvider {
               ],
             ),
           ],
+        ),
+        GoRoute(
+          path: '/inventory',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return CustomTransitionPage(
+              fullscreenDialog: true,
+              key: state.pageKey,
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<AuthBloc>.value(
+                    value: sl<AuthBloc>(),
+                  ),
+                ],
+                child: const Inventory(),
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.ease;
+
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+
+                return SlideTransition(
+                  position: animation.drive(tween),
+                  child: child,
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
+          path: '/transactions',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return CustomTransitionPage(
+              fullscreenDialog: true,
+              key: state.pageKey,
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<AuthBloc>.value(
+                    value: sl<AuthBloc>(),
+                  ),
+                ],
+                child: const Transaction(),
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.ease;
+
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+
+                return SlideTransition(
+                  position: animation.drive(tween),
+                  child: child,
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
+          path: '/newProduct',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return CustomTransitionPage(
+              fullscreenDialog: true,
+              key: state.pageKey,
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<AuthBloc>.value(
+                    value: sl<AuthBloc>(),
+                  ),
+                ],
+                child: const NewProduct(),
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.ease;
+
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+
+                return SlideTransition(
+                  position: animation.drive(tween),
+                  child: child,
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
+          path: '/updateProduct',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return CustomTransitionPage(
+              fullscreenDialog: true,
+              key: state.pageKey,
+              child: MultiBlocProvider(
+                providers: [
+                  BlocProvider<AuthBloc>.value(
+                    value: sl<AuthBloc>(),
+                  ),
+                ],
+                child: const UpdateProduct(),
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                const begin = Offset(0.0, 1.0);
+                const end = Offset.zero;
+                const curve = Curves.ease;
+
+                var tween = Tween(begin: begin, end: end)
+                    .chain(CurveTween(curve: curve));
+
+                return SlideTransition(
+                  position: animation.drive(tween),
+                  child: child,
+                );
+              },
+            );
+          },
         ),
       ],
     );

@@ -125,4 +125,15 @@ class CommonStyles {
       borderRadius: const BorderRadius.all(Radius.circular(12.0)),
     );
   }
+
+  static TextStyle summaryCardDataTitleStyles = const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+  );
+
+  static TextStyle summaryCardDataStyles = const TextStyle(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w600,
+  );
+
 }
