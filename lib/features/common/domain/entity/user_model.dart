@@ -1,24 +1,30 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class UserModel extends Equatable {
-  UserModel({required this.id, this.email, this.displayName, this.password});
+part 'user_model.g.dart';
+
+@JsonSerializable()
+class UserModel {
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  String? id;
+  String? email;
+  String? displayName;
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  String? password;
+
+  UserModel({this.id, this.email, this.displayName, this.password});
 
   UserModel.withEmailAndPassword({this.email, this.password});
 
-  final String? email;
+  UserModel.noArgs() {
+    id = null;
+    email = null;
+    displayName = null;
+    password = null;
+  }
 
-  String? id;
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
 
-  String? displayName;
+  Map<String, dynamic> toJson() => _$UserModelToJson(this);
 
-  final String? password;
-
-  static UserModel empty = UserModel(id: '');
-
-  bool get isEmpty => this == UserModel.empty;
-
-  bool get isNotEmpty => this != UserModel.empty;
-
-  @override
-  List<Object?> get props => [id, email, displayName, password];
 }

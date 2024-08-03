@@ -111,7 +111,7 @@ class _SignUpWidgetState extends State<SignUpWidget> {
                         },
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-zA-Z]')),
+                              RegExp(r'[a-zA-Z\s]')),
                         ],
                         textCapitalization: TextCapitalization.words,
                         style: const TextStyle(

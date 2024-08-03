@@ -135,7 +135,7 @@ class _NewReminderState extends State<NewReminder> {
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
                             RegExp(r'[a-zA-Z\s]')),
-                        LengthLimitingTextInputFormatter(15)
+                        LengthLimitingTextInputFormatter(30)
                       ],
                       keyboardType: TextInputType.text,
                       decoration: InputDecoration(
@@ -226,7 +226,7 @@ class _NewReminderState extends State<NewReminder> {
                               const BorderRadius.all(Radius.circular(16)),
                           constraints: const BoxConstraints(
                             maxWidth: 350,
-                            maxHeight: 650,
+                            maxHeight: 775,
                           ),
                           transitionBuilder: (context, anim1, anim2, child) {
                             return FadeTransition(
@@ -279,14 +279,14 @@ class _NewReminderState extends State<NewReminder> {
                       ),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 72),
                     ElevatedButton(
                       style: CommonStyles.secondaryButtonStyles(
-                          minimumSizeWidth: 120, minimumSizeHeight: 36),
+                          minimumSizeWidth: 240, minimumSizeHeight: 42),
                       onPressed: saveReminder,
                       child: Text('save'.toUpperCase(),
                           style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: 16,
                               letterSpacing: 1,
                               color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.w600)),

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
+import 'package:route_nxt/features/inventory/data/models/product_model.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/update_product/update_product_cubit.dart';
 
 class UpdateProduct extends StatefulWidget {
-  const UpdateProduct({super.key});
+  final String productId;
+
+  const UpdateProduct({super.key, required this.productId});
 
   @override
   State<UpdateProduct> createState() => _UpdateProductState();
@@ -19,10 +25,12 @@ class _UpdateProductState extends State<UpdateProduct> {
   final TextEditingController controllerDiscount = TextEditingController();
   final TextEditingController controllerCode = TextEditingController();
   final updateProductFormKey = GlobalKey<FormState>();
-  bool isContinueDisabled = false;
+  bool isContinueDisabled = true;
   late FocusNode buyingPriceNode;
   late FocusNode sellingPriceNode;
   late FocusNode discountNode;
+  late ProductModel product;
+  bool status = false;
 
   @override
   void initState() {
@@ -44,6 +52,9 @@ class _UpdateProductState extends State<UpdateProduct> {
     });
     discountNode = FocusNode();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UpdateProductCubit>().getProduct(widget.productId);
+    });
   }
 
   void _formatCurrency(TextEditingController controller) {
@@ -62,33 +73,82 @@ class _UpdateProductState extends State<UpdateProduct> {
   @override
   Widget build(BuildContext context) {
     final MediaQueryData data = MediaQuery.of(context);
-    return MediaQuery(
-        data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
-        child: Scaffold(
-            appBar: AppBar(
-              iconTheme: IconThemeData(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                iconSize: 24,
-                onPressed: () {
-                  GoRouter.of(context).pushReplacement('/home');
-                },
-              ),
-              title: Text(
-                "Inventory".toUpperCase(),
-                style: TextStyle(
-                    fontSize: 24,
+    return BlocConsumer<UpdateProductCubit, UpdateProductState>(
+      listener: (context, state) {
+        state.maybeWhen(
+            saved: (ProductModel product) {
+              // context.read<UpdateProductCubit>().getProduct(widget.productId);
+              CustomSnackBar.showSnackBar(
+                  null, "Updated Successfully", 'success');
+            },
+            loaded: (ProductModel product) {
+              this.product = product;
+              controllerName.value =
+                  TextEditingValue(text: product.name ?? "N/A");
+              controllerBuying.value =
+                  TextEditingValue(text: product.buying.toString());
+              controllerSelling.value =
+                  TextEditingValue(text: product.selling.toString());
+              controllerQty.value =
+                  TextEditingValue(text: product.quantity.toString());
+              controllerDiscount.value =
+                  TextEditingValue(text: product.discount.toString());
+              controllerCode.value =
+                  TextEditingValue(text: product.code ?? "N/A");
+              status = product.status!;
+              isContinueDisabled = false;
+            },
+            savingFailed: (message) {
+              CustomSnackBar.showSnackBar(null, message, 'error');
+            },
+            loadingFailed: (message) {
+              isContinueDisabled = true;
+              CustomSnackBar.showSnackBar(null, message, 'error');
+            },
+            orElse: () {});
+      },
+      builder: (context, state) {
+        return MediaQuery(
+            data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
+            child: Scaffold(
+                appBar: AppBar(
+                  iconTheme: IconThemeData(
                     color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 1.2,
-                    wordSpacing: 4,
-                    fontWeight: FontWeight.w700),
-              ),
-              centerTitle: true,
-            ),
-            body: _updateProductForm(context),
-            bottomNavigationBar: _bottomNavBar(context)));
+                  ),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    iconSize: 24,
+                    onPressed: () {
+                      GoRouter.of(context).pushReplacement('/inventory');
+                    },
+                  ),
+                  title: Text(
+                    "Inventory".toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 24,
+                        color: Theme.of(context).colorScheme.primary,
+                        letterSpacing: 1.2,
+                        wordSpacing: 4,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  centerTitle: true,
+                ),
+                body: state.when(
+                    initial: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    loaded: (ProductModel product) =>
+                        _updateProductForm(context),
+                    loadingFailed: (message) => _updateProductForm(context),
+                    saving: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    saved: (ProductModel product) =>
+                        _updateProductForm(context),
+                    savingFailed: (message) => _updateProductForm(context)),
+                bottomNavigationBar: _bottomNavBar(context)));
+      },
+    );
   }
 
   _updateProductForm(BuildContext context) {
@@ -100,7 +160,7 @@ class _UpdateProductState extends State<UpdateProduct> {
         ),
         Container(
           margin:
-          const EdgeInsets.only(top: 12, left: 20, right: 20, bottom: 10),
+              const EdgeInsets.only(top: 12, left: 20, right: 20, bottom: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -122,9 +182,8 @@ class _UpdateProductState extends State<UpdateProduct> {
                 width: 12,
               ),
               const Text("Update Product",
-                  style: TextStyle(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w600)),
+                  style:
+                      TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -138,48 +197,62 @@ class _UpdateProductState extends State<UpdateProduct> {
               margin: const EdgeInsets.only(
                   top: 8, left: 20, right: 20, bottom: 20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: Theme.of(context).colorScheme.scrim.withOpacity(0.2),
-                    width: 1.0,
-                    style: BorderStyle.solid),
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color:
+                          Theme.of(context).colorScheme.scrim.withOpacity(0.2),
+                      width: 1.0,
+                      style: BorderStyle.solid),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .shadow
-                          .withOpacity(0.1),
+                      color:
+                          Theme.of(context).colorScheme.shadow.withOpacity(0.1),
                       spreadRadius: 1,
                       blurRadius: 2,
                       offset: const Offset(0, 1),
                     ),
                     BoxShadow(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .shadow
-                          .withOpacity(0.1),
-                      offset: const Offset(0,0),
+                      color:
+                          Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                      offset: const Offset(0, 0),
                     )
-                  ]
-              ),
+                  ]),
               child: Form(
                 key: updateProductFormKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    const SizedBox(
+                    SizedBox(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             "Product Details",
                             style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500),
+                                fontSize: 16, fontWeight: FontWeight.w500),
                           ),
+                          SizedBox(
+                              child: Row(
+                            children: [
+                              const Text(
+                                "Status",
+                                style: TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(width: 8),
+                              Switch(
+                                value: status,
+                                onChanged: (bool value) {
+                                  setState(() {
+                                    status = value;
+                                  });
+                                },
+                              )
+                            ],
+                          ))
                         ],
                       ),
                     ),
@@ -188,7 +261,6 @@ class _UpdateProductState extends State<UpdateProduct> {
                     ),
                     const Divider(),
                     const SizedBox(height: 8),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -224,8 +296,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       ],
                       keyboardType: TextInputType.text,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -241,9 +312,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       textCapitalization: TextCapitalization.words,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -279,8 +348,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       keyboardType: TextInputType.text,
                       controller: controllerCode,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -295,9 +363,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       ),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -330,10 +396,10 @@ class _UpdateProductState extends State<UpdateProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(15)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -349,9 +415,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       focusNode: buyingPriceNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -383,12 +447,12 @@ class _UpdateProductState extends State<UpdateProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(15)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       controller: controllerSelling,
                       onChanged: (value) {},
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -404,9 +468,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       focusNode: sellingPriceNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -441,8 +503,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       keyboardType: TextInputType.number,
                       controller: controllerQty,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -457,9 +518,7 @@ class _UpdateProductState extends State<UpdateProduct> {
                       ),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -491,11 +550,11 @@ class _UpdateProductState extends State<UpdateProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(5)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       controller: controllerDiscount,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -511,7 +570,6 @@ class _UpdateProductState extends State<UpdateProduct> {
                       focusNode: discountNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                   ],
                 ),
               ),
@@ -525,16 +583,37 @@ class _UpdateProductState extends State<UpdateProduct> {
   _bottomNavBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      child: ElevatedButton(
-        onPressed: isContinueDisabled
-            ? null
-            : () {
-          if (updateProductFormKey.currentState!.validate()) {}
+      child: BlocBuilder<UpdateProductCubit, UpdateProductState>(
+        builder: (context, state) {
+          return state.maybeWhen(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              saving: () => const Center(child: CircularProgressIndicator()),
+              orElse: () => ElevatedButton(
+                    onPressed: isContinueDisabled
+                        ? null
+                        : () {
+                            if (updateProductFormKey.currentState!.validate()) {
+                              product.name = controllerName.text.trim();
+                              product.code = controllerCode.text.trim();
+                              product.buying =
+                                  double.parse(controllerBuying.text);
+                              product.selling =
+                                  double.parse(controllerSelling.text);
+                              product.quantity = int.parse(controllerQty.text);
+                              product.discount =
+                                  double.parse(controllerDiscount.text);
+                              product.status = status;
+                              context
+                                  .read<UpdateProductCubit>()
+                                  .updateProduct(product);
+                            }
+                          },
+                    style: CommonStyles.mainButtonStyles(),
+                    child: Text('Update'.toUpperCase(),
+                        style: CommonStyles.mainButtonTextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary)),
+                  ));
         },
-        style: CommonStyles.mainButtonStyles(),
-        child: Text('submit'.toUpperCase(),
-            style: CommonStyles.mainButtonTextStyle(
-                color: Theme.of(context).colorScheme.onPrimary)),
       ),
     );
   }
@@ -549,5 +628,4 @@ class _UpdateProductState extends State<UpdateProduct> {
     controllerQty.dispose();
     controllerName.dispose();
   }
-
 }

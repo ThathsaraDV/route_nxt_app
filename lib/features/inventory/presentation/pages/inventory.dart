@@ -1,8 +1,12 @@
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
+import 'package:route_nxt/features/inventory/data/models/product_model.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/inventory/inventory_cubit.dart';
 
 class Inventory extends StatefulWidget {
   const Inventory({super.key});
@@ -13,97 +17,94 @@ class Inventory extends StatefulWidget {
 
 class _InventoryState extends State<Inventory> {
   final DateFormat formatter = DateFormat('yyyy-MM-dd H:mm');
-  List<Map<String, dynamic>> products = [
-    {
-      'productId': 'P001',
-      'name': 'Widget Pro',
-      'code': 'WDP001',
-      'sellingPrice': 99.99,
-      'buyingPrice': 59.99,
-      'createdDate': DateTime(2023, 6, 15),
-      'quantity': 50,
-      'discount': 10
-    },
-    {
-      'productId': 'P002',
-      'name': 'Gadget Plus',
-      'code': 'GDP002',
-      'sellingPrice': 149.99,
-      'buyingPrice': 89.99,
-      'createdDate': DateTime(2023, 7, 20),
-      'quantity': 30,
-      'discount': 15
-    },
-    {
-      'productId': 'P003',
-      'name': 'Device Mini',
-      'code': 'DVM003',
-      'sellingPrice': 79.99,
-      'buyingPrice': 49.99,
-      'createdDate': DateTime(2023, 5, 10),
-      'quantity': 100,
-      'discount': 5
-    },
-    {
-      'productId': 'P004',
-      'name': 'Tool Set',
-      'code': 'TLS004',
-      'sellingPrice': 199.99,
-      'buyingPrice': 129.99,
-      'createdDate': DateTime(2023, 8, 5),
-      'quantity': 20,
-      'discount': 20
-    },
-    {
-      'productId': 'P005',
-      'name': 'Accessory Pack',
-      'code': 'ACP005',
-      'sellingPrice': 49.99,
-      'buyingPrice': 29.99,
-      'createdDate': DateTime(2023, 4, 25),
-      'quantity': 75,
-      'discount': 8
-    }
-  ];
+  List<ProductModel> productList = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InventoryCubit>().getAllProducts();
+    });
+  }
+
+  String formatDate(DateTime? date) {
+    if (null == date) {
+      return "N/A";
+    } else {
+      return formatter.format(date);
+    }
+  }
+
+  String _formatCurrency(double? value) {
+    if (null != value) {
+      var formatter = NumberFormat.currency(customPattern: '#,###.##');
+      String amount = value.toString();
+      if (!amount.contains('.')) {
+        amount = "$amount.00";
+      }
+      amount = amount.replaceAll(',', '');
+      String formattedAmount = formatter.format(double.parse(amount));
+      return formattedAmount;
+    } else {
+      return "N/A";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final MediaQueryData data = MediaQuery.of(context);
-    return MediaQuery(
-        data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
-        child: Scaffold(
-          appBar: AppBar(
-            iconTheme: IconThemeData(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              iconSize: 24,
-              onPressed: () {
-                GoRouter.of(context).pushReplacement('/home');
-              },
-            ),
-            title: Text(
-              "Inventory".toUpperCase(),
-              style: TextStyle(
-                  fontSize: 24,
+    return BlocConsumer<InventoryCubit, InventoryState>(
+      listener: (context, state) {
+        state.maybeWhen(
+            orElse: () {},
+            loadingFailed: (message) {
+              CustomSnackBar.showSnackBar(null, message, 'error');
+            });
+      },
+      builder: (context, state) {
+        return MediaQuery(
+            data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
+            child: Scaffold(
+              appBar: AppBar(
+                iconTheme: IconThemeData(
                   color: Theme.of(context).colorScheme.primary,
-                  letterSpacing: 1.2,
-                  wordSpacing: 4,
-                  fontWeight: FontWeight.w700),
-            ),
-            centerTitle: true,
-          ),
-          body: _productList(context),
-        ));
+                ),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  iconSize: 24,
+                  onPressed: () {
+                    GoRouter.of(context).pushReplacement('/home');
+                  },
+                ),
+                title: Text(
+                  "Inventory".toUpperCase(),
+                  style: TextStyle(
+                      fontSize: 24,
+                      color: Theme.of(context).colorScheme.primary,
+                      letterSpacing: 1.2,
+                      wordSpacing: 4,
+                      fontWeight: FontWeight.w700),
+                ),
+                centerTitle: true,
+              ),
+              body: state.when(
+                  initial: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  loaded: (List<ProductModel> productList) {
+                    return _productList(context, productList);
+                  },
+                  loadingFailed: (message) {
+                    return _productList(context, productList);
+                  }),
+            ));
+      },
+    );
   }
 
-  _productList(BuildContext context) {
+  _productList(BuildContext context, List<ProductModel> productList) {
+    this.productList = productList;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -142,7 +143,7 @@ class _InventoryState extends State<Inventory> {
         Flexible(
           child: SingleChildScrollView(
             child: Column(
-              children: List.generate(products.length, (index) {
+              children: List.generate(productList.length, (index) {
                 return _productCard(context, index);
               }),
             ),
@@ -153,7 +154,7 @@ class _InventoryState extends State<Inventory> {
   }
 
   _productCard(BuildContext context, int index) {
-    Map<String, dynamic> product = products[index];
+    ProductModel product = productList[index];
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
@@ -228,12 +229,10 @@ class _InventoryState extends State<Inventory> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("${product["name"]}",
+                      Text(product.name ?? "N/A",
                           style: const TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600)),
-                      Text(
-                          formatter.format(DateTime.parse(
-                              product["createdDate"].toString())),
+                      Text(formatDate(product.createdDate),
                           style: const TextStyle(
                               fontSize: 9.5, fontWeight: FontWeight.w500)),
                       const SizedBox(
@@ -246,18 +245,25 @@ class _InventoryState extends State<Inventory> {
                             padding: const EdgeInsets.only(
                                 top: 1.5, bottom: 1.5, left: 4, right: 4),
                             decoration: BoxDecoration(
-                              color:
-                                  CommonStyles.infoMsgBgColor.withOpacity(0.1),
+                              color: product.status!
+                                  ? CommonStyles.infoMsgBgColor.withOpacity(0.1)
+                                  : CommonStyles.errorMsgBgColor
+                                      .withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 width: 1,
-                                color: CommonStyles.infoMsgBgColor
-                                    .withOpacity(0.2),
+                                color: product.status!
+                                    ? CommonStyles.infoMsgBgColor
+                                        .withOpacity(0.2)
+                                    : CommonStyles.errorMsgBgColor
+                                        .withOpacity(0.2),
                               ),
                             ),
-                            child: const Text("ACTIVE",
+                            child: Text(product.status! ? "ACTIVE" : "INACTIVE",
                                 style: TextStyle(
-                                    color: CommonStyles.infoMsgBgColor,
+                                    color: product.status!
+                                        ? CommonStyles.infoMsgBgColor
+                                        : CommonStyles.errorMsgBgColor,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600)),
                           ),
@@ -266,7 +272,9 @@ class _InventoryState extends State<Inventory> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 InkWell(
-                                  onTap: () async {},
+                                  onTap: () async {
+                                    GoRouter.of(context).go('/updateProduct', extra: product.id);
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.only(
                                         left: 8, right: 8, top: 2, bottom: 2),
@@ -353,7 +361,7 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["name"],
+                              product.name ?? "N/A",
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),
@@ -373,7 +381,7 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["code"],
+                              product.code ?? "N/A",
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),
@@ -399,7 +407,7 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["buyingPrice"].toString(),
+                              _formatCurrency(product.buying),
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),
@@ -419,7 +427,7 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["sellingPrice"].toString(),
+                              _formatCurrency(product.selling),
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),
@@ -445,7 +453,9 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["quantity"].toString(),
+                              null != product.quantity
+                                  ? product.quantity.toString()
+                                  : "N/A",
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),
@@ -465,7 +475,9 @@ class _InventoryState extends State<Inventory> {
                                   .copyWith(),
                             ),
                             Text(
-                              product["discount"].toString(),
+                              null != product.discount
+                                  ? "${_formatCurrency(product.discount)} %"
+                                  : "N/A",
                               style:
                                   CommonStyles.summaryCardDataStyles.copyWith(),
                             ),

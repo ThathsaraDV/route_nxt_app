@@ -14,7 +14,7 @@ class NotificationPlugin {
     initializePlatformSpecifics();
   }
 
-  static initializePlatformSpecifics() {
+  static initializePlatformSpecifics() async {
     AndroidInitializationSettings androidInitializationSettings =
         const AndroidInitializationSettings('@mipmap/launcher_icon');
     initializationSettings =
@@ -22,6 +22,14 @@ class NotificationPlugin {
     flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onDidReceiveNotificationResponse: onNotificationTap,
         onDidReceiveBackgroundNotificationResponse: onNotificationTap);
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestExactAlarmsPermission();
   }
 
   static void onNotificationTap(NotificationResponse response) {}

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
+import 'package:route_nxt/features/inventory/data/models/product_model.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/new_product/new_product_cubit.dart';
 
 class NewProduct extends StatefulWidget {
   const NewProduct({super.key});
@@ -43,7 +47,6 @@ class _NewProductState extends State<NewProduct> {
       }
     });
     discountNode = FocusNode();
-
   }
 
   void _formatCurrency(TextEditingController controller) {
@@ -62,33 +65,65 @@ class _NewProductState extends State<NewProduct> {
   @override
   Widget build(BuildContext context) {
     final MediaQueryData data = MediaQuery.of(context);
-    return MediaQuery(
-        data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
-        child: Scaffold(
-            appBar: AppBar(
-              iconTheme: IconThemeData(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                iconSize: 24,
-                onPressed: () {
-                  GoRouter.of(context).pushReplacement('/home');
-                },
-              ),
-              title: Text(
-                "Inventory".toUpperCase(),
-                style: TextStyle(
-                    fontSize: 24,
+    return BlocConsumer<NewProductCubit, NewProductState>(
+      listener: (context, state) {
+        state.when(
+            initial: () {},
+            saving: () {},
+            saved: (ProductModel product) {
+              controllerSelling.clear();
+              controllerBuying.clear();
+              controllerCode.clear();
+              controllerDiscount.clear();
+              controllerQty.clear();
+              controllerName.clear();
+              CustomSnackBar.showSnackBar(null, "Saved Successfully", 'success');
+            },
+            savingFailed: (message) {
+              CustomSnackBar.showSnackBar(null, message, 'error');
+            });
+      },
+      builder: (context, state) {
+        return MediaQuery(
+            data: data.copyWith(textScaler: const TextScaler.linear(1.0)),
+            child: Scaffold(
+                appBar: AppBar(
+                  iconTheme: IconThemeData(
                     color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 1.2,
-                    wordSpacing: 4,
-                    fontWeight: FontWeight.w700),
-              ),
-              centerTitle: true,
-            ),
-            body: _newProductForm(context),
-            bottomNavigationBar: _bottomNavBar(context)));
+                  ),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    iconSize: 24,
+                    onPressed: () {
+                      GoRouter.of(context).pushReplacement('/home');
+                    },
+                  ),
+                  title: Text(
+                    "Inventory".toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 24,
+                        color: Theme.of(context).colorScheme.primary,
+                        letterSpacing: 1.2,
+                        wordSpacing: 4,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  centerTitle: true,
+                ),
+                body: state.when(
+                    initial: () {
+                      return _newProductForm(context);
+                    },
+                    saving: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    saved: (ProductModel product) {
+                      return _newProductForm(context);
+                    },
+                    savingFailed: (message) {
+                      return _newProductForm(context);
+                    }),
+                bottomNavigationBar: _bottomNavBar(context)));
+      },
+    );
   }
 
   _newProductForm(BuildContext context) {
@@ -122,9 +157,8 @@ class _NewProductState extends State<NewProduct> {
                 width: 12,
               ),
               const Text("Add New Product",
-                  style: TextStyle(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w600)),
+                  style:
+                      TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -138,31 +172,27 @@ class _NewProductState extends State<NewProduct> {
               margin: const EdgeInsets.only(
                   top: 8, left: 20, right: 20, bottom: 20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: Theme.of(context).colorScheme.scrim.withOpacity(0.2),
-                    width: 1.0,
-                    style: BorderStyle.solid),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .shadow
-                        .withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                  BoxShadow(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .shadow
-                        .withOpacity(0.1),
-                    offset: const Offset(0,0),
-                  )
-                ]
-              ),
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color:
+                          Theme.of(context).colorScheme.scrim.withOpacity(0.2),
+                      width: 1.0,
+                      style: BorderStyle.solid),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                    BoxShadow(
+                      color:
+                          Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+                      offset: const Offset(0, 0),
+                    )
+                  ]),
               child: Form(
                 key: newProductFormKey,
                 child: Column(
@@ -177,8 +207,7 @@ class _NewProductState extends State<NewProduct> {
                           Text(
                             "Product Details",
                             style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500),
+                                fontSize: 16, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -188,7 +217,6 @@ class _NewProductState extends State<NewProduct> {
                     ),
                     const Divider(),
                     const SizedBox(height: 8),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -224,8 +252,7 @@ class _NewProductState extends State<NewProduct> {
                       ],
                       keyboardType: TextInputType.text,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -241,9 +268,7 @@ class _NewProductState extends State<NewProduct> {
                       textCapitalization: TextCapitalization.words,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -279,8 +304,7 @@ class _NewProductState extends State<NewProduct> {
                       keyboardType: TextInputType.text,
                       controller: controllerCode,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -295,9 +319,7 @@ class _NewProductState extends State<NewProduct> {
                       ),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -330,10 +352,10 @@ class _NewProductState extends State<NewProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(15)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -349,9 +371,7 @@ class _NewProductState extends State<NewProduct> {
                       focusNode: buyingPriceNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -383,12 +403,12 @@ class _NewProductState extends State<NewProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(15)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       controller: controllerSelling,
                       onChanged: (value) {},
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -404,9 +424,7 @@ class _NewProductState extends State<NewProduct> {
                       focusNode: sellingPriceNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -441,8 +459,7 @@ class _NewProductState extends State<NewProduct> {
                       keyboardType: TextInputType.number,
                       controller: controllerQty,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -457,9 +474,7 @@ class _NewProductState extends State<NewProduct> {
                       ),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                     const SizedBox(height: 16),
-
                     RichText(
                       textAlign: TextAlign.justify,
                       text: TextSpan(
@@ -491,11 +506,11 @@ class _NewProductState extends State<NewProduct> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                         LengthLimitingTextInputFormatter(5)
                       ],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       controller: controllerDiscount,
                       style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.all(12),
                         filled: true,
@@ -511,7 +526,6 @@ class _NewProductState extends State<NewProduct> {
                       focusNode: discountNode,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-
                   ],
                 ),
               ),
@@ -525,16 +539,34 @@ class _NewProductState extends State<NewProduct> {
   _bottomNavBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      child: ElevatedButton(
-        onPressed: isContinueDisabled
-            ? null
-            : () {
-                if (newProductFormKey.currentState!.validate()) {}
-              },
-        style: CommonStyles.mainButtonStyles(),
-        child: Text('submit'.toUpperCase(),
-            style: CommonStyles.mainButtonTextStyle(
-                color: Theme.of(context).colorScheme.onPrimary)),
+      child: BlocBuilder<NewProductCubit, NewProductState>(
+        builder: (context, state) {
+          return state.maybeWhen(
+              saving: () => const Center(child: CircularProgressIndicator()),
+              orElse: () {
+                return ElevatedButton(
+                  onPressed: () {
+                    if (newProductFormKey.currentState!.validate()) {
+                      context.read<NewProductCubit>().addProduct(ProductModel(
+                          id: null,
+                          name: controllerName.text.trim(),
+                          code: controllerCode.text.trim(),
+                          buying: double.parse(controllerBuying.text),
+                          selling: double.parse(controllerSelling.text),
+                          quantity: int.parse(controllerQty.text),
+                          discount: double.parse(controllerDiscount.text),
+                          createdDate: DateTime.now(),
+                          status: true
+                      ));
+                    }
+                  },
+                  style: CommonStyles.mainButtonStyles(),
+                  child: Text('submit'.toUpperCase(),
+                      style: CommonStyles.mainButtonTextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary)),
+                );
+              });
+        },
       ),
     );
   }
@@ -549,5 +581,4 @@ class _NewProductState extends State<NewProduct> {
     controllerQty.dispose();
     controllerName.dispose();
   }
-
 }

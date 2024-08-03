@@ -67,32 +67,44 @@ class ReminderCubit extends Cubit<ReminderState> {
     required String payload,
     required int seconds,
   }) async {
-    var isNotificationEnabled = await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()!
-            .areNotificationsEnabled() ??
-        false;
-    var isExactEnabled = await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()!
-            .canScheduleExactNotifications() ??
-        false;
-    if (isNotificationEnabled && isExactEnabled) {
-      final platformChannelSpecifics = await _notificationDetails();
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-          id,
-          title,
-          body,
-          tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds)),
-          platformChannelSpecifics,
-          payload: payload,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle);
+    bool isPermissionsGiven = await checkPermission();
+    if (isPermissionsGiven) {
+      await scheduleNotification(id, title, body, payload, seconds);
     } else {
-      CustomSnackBar.showSnackBar(
-          null, 'Please grant notification permissions', 'warning');
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestExactAlarmsPermission();
+      bool permissionsGiven = await checkPermission();
+      if (permissionsGiven) {
+        await scheduleNotification(id, title, body, payload, seconds);
+      } else {
+        CustomSnackBar.showSnackBar(
+            null, 'Please grant notification permissions', 'warning');
+      }
     }
+  }
+
+  Future<void> scheduleNotification(int id,
+      String title,
+      String body,
+      String payload,
+      int seconds,) async {
+    final platformChannelSpecifics = await _notificationDetails();
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds)),
+        platformChannelSpecifics,
+        payload: payload,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle);
   }
 
   Future<NotificationDetails> _notificationDetails() async {
@@ -114,4 +126,19 @@ class ReminderCubit extends Cubit<ReminderState> {
 
     return platformChannelSpecifics;
   }
+
+  Future<bool> checkPermission() async {
+    var isNotificationEnabled = await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()!
+        .areNotificationsEnabled() ??
+        false;
+    var isExactEnabled = await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()!
+        .canScheduleExactNotifications() ??
+        false;
+    return (isNotificationEnabled && isExactEnabled);
+  }
+
 }

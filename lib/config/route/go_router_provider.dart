@@ -13,6 +13,9 @@ import 'package:route_nxt/features/dashboard/presentation/pages/dashboard/dashbo
 import 'package:route_nxt/features/dashboard/presentation/pages/home/home_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/map/map_page.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/reminder/reminder_page.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/inventory/inventory_cubit.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/new_product/new_product_cubit.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/update_product/update_product_cubit.dart';
 import 'package:route_nxt/features/inventory/presentation/pages/inventory.dart';
 import 'package:route_nxt/features/inventory/presentation/pages/new_product.dart';
 import 'package:route_nxt/features/inventory/presentation/pages/transactions.dart';
@@ -132,8 +135,8 @@ class GoRouterProvider {
               key: state.pageKey,
               child: MultiBlocProvider(
                 providers: [
-                  BlocProvider<AuthBloc>.value(
-                    value: sl<AuthBloc>(),
+                  BlocProvider<InventoryCubit>.value(
+                    value: sl<InventoryCubit>(),
                   ),
                 ],
                 child: const Inventory(),
@@ -194,8 +197,8 @@ class GoRouterProvider {
               key: state.pageKey,
               child: MultiBlocProvider(
                 providers: [
-                  BlocProvider<AuthBloc>.value(
-                    value: sl<AuthBloc>(),
+                  BlocProvider<NewProductCubit>.value(
+                    value: sl<NewProductCubit>(),
                   ),
                 ],
                 child: const NewProduct(),
@@ -220,16 +223,17 @@ class GoRouterProvider {
         GoRoute(
           path: '/updateProduct',
           pageBuilder: (BuildContext context, GoRouterState state) {
+            String productId = state.extra as String;
             return CustomTransitionPage(
               fullscreenDialog: true,
               key: state.pageKey,
               child: MultiBlocProvider(
                 providers: [
-                  BlocProvider<AuthBloc>.value(
-                    value: sl<AuthBloc>(),
+                  BlocProvider<UpdateProductCubit>.value(
+                    value: sl<UpdateProductCubit>(),
                   ),
                 ],
-                child: const UpdateProduct(),
+                child: UpdateProduct(productId: productId,),
               ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {

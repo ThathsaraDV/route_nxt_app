@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:route_nxt/core/utility/service_locator.dart';
+import 'package:route_nxt/features/common/domain/entity/user_model.dart';
 import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
@@ -22,15 +23,18 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPage extends State<DashboardPage> {
   bool isSideMenuOpen = true;
   bool darkMode = false;
+  late User user;
+  UserModel userModel = UserModel.noArgs();
 
   @override
   void initState() {
     super.initState();
+    user = context.read<AuthBloc>().getCurrentUser();
     setState(() {
       darkMode = context.read<ThemeBloc>().getStoredDarkMode();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardCubit>().getAccountDetails();
+      context.read<DashboardCubit>().getAccountDetails(user.uid);
     });
   }
 
@@ -122,7 +126,11 @@ class _DashboardPage extends State<DashboardPage> {
                                       GoRouter.of(context)
                                           .pushReplacement('/login');
                                     },
-                                    stepLoaded: () {},
+                                    stepLoaded: (UserModel userModel) {
+                                      setState(() {
+                                        this.userModel = userModel;
+                                      });
+                                    },
                                     orElse: () {});
                               },
                               builder: (context, state) {
@@ -130,7 +138,7 @@ class _DashboardPage extends State<DashboardPage> {
                                     initial: () => const SplashScreen(),
                                     stepLoading: () => const Center(
                                         child: CircularProgressIndicator()),
-                                    stepLoaded: () {
+                                    stepLoaded: (UserModel userModel) {
                                       return widget.navigationShell;
                                     },
                                     stepLoadingFailed: (e) => const Center(
@@ -235,7 +243,7 @@ class _DashboardPage extends State<DashboardPage> {
                         const SizedBox(
                           height: 6,
                         ),
-                        Text('thathsara',
+                        Text(userModel.displayName ?? "N/A",
                             style: TextStyle(
                                 fontSize: 16,
                                 color: Theme.of(context).colorScheme.primary,
@@ -243,7 +251,7 @@ class _DashboardPage extends State<DashboardPage> {
                         const SizedBox(
                           height: 2,
                         ),
-                        Text('thathsaradananjaya@gmail.com',
+                        Text(userModel.email ?? "N/A",
                             style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.primary,
