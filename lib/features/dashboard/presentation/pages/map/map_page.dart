@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart%20';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart' as gc;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
@@ -12,8 +10,11 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:location/location.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 import 'package:route_nxt/features/common/presentation/widgets/empty_widget.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/widgets/map/transaction_modal.dart';
+import 'package:route_nxt/features/inventory/data/models/product_model.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
@@ -24,6 +25,7 @@ class MapPage extends StatefulWidget {
   State<MapPage> createState() => _MapPage();
 }
 
+// TODO: Validate Optimization if user has no previous transaction date
 class _MapPage extends State<MapPage> {
   final Completer<GoogleMapController> _controller = Completer();
   late Location location;
@@ -36,6 +38,9 @@ class _MapPage extends State<MapPage> {
   String draggedAddress = "";
   List<gc.Placemark>? placeMarks;
   gc.Placemark? address;
+  bool isValidDestination = false;
+  List<ProductModel> productList = [];
+  StreamSubscription<LocationData>? locationSubscription;
 
   @override
   void initState() {
@@ -58,7 +63,7 @@ class _MapPage extends State<MapPage> {
       LocationData currLocation, Location newLocation) async {
     location = newLocation;
     GoogleMapController googleMapController = await _controller.future;
-    location.onLocationChanged.listen(
+    locationSubscription = location.onLocationChanged.listen(
       (newLoc) {
         currentLocation = newLoc;
         if (isStarted) {
@@ -74,42 +79,29 @@ class _MapPage extends State<MapPage> {
             ),
           );
         }
-        setState(() {});
+        if (context.mounted) {
+          setState(() {});
+        }
       },
     );
   }
 
-  void getPolyPoints() async {
-    PolylinePoints polylinePoints = PolylinePoints();
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey: dotenv.env['MAPS_API_KEY'],
-      request: PolylineRequest(
-        origin: PointLatLng(
-            currentLocation!.latitude!, currentLocation!.longitude!),
-        destination: PointLatLng(destination.latitude, destination.longitude),
-        mode: TravelMode.driving,
-      ),
-    );
-    if (result.points.isNotEmpty) {
-      for (var point in result.points) {
-        polylineCoordinates.add(
-          LatLng(point.latitude, point.longitude),
-        );
-      }
-      setState(() {});
-    }
-  }
-
   Future _getAddress(LatLng position) async {
-    print('Location ==========================> Latitude: ${position.latitude} Longitude: ${position.longitude}');
-    placeMarks = await gc.placemarkFromCoordinates(
-        position.latitude, position.longitude);
-    address = placeMarks![0];
-    String addressString =
-        "${address!.street},${address!.locality},${address!.administrativeArea}, ${address!.country}";
-    setState(() {
-      draggedAddress = addressString;
-    });
+    print(
+        'Location ==========================> Latitude: ${position.latitude} Longitude: ${position.longitude}');
+    try {
+      placeMarks = await gc.placemarkFromCoordinates(
+          position.latitude, position.longitude);
+      isValidDestination = true;
+      address = placeMarks![0];
+      String addressString =
+          "${address!.street},${address!.locality},${address!.administrativeArea}, ${address!.country}";
+      setState(() {
+        draggedAddress = addressString;
+      });
+    } catch (e) {
+      isValidDestination = false;
+    }
   }
 
   void setPickDestination() {
@@ -118,20 +110,50 @@ class _MapPage extends State<MapPage> {
     });
   }
 
-  Future<void> setDestinationMarker() async {
+  void setTripStarted() {
     setState(() {
-      isPickDestination = !isPickDestination;
-      markers.add(Marker(
-        markerId: const MarkerId("currentLocation"),
-        position:
-            LatLng(currentLocation!.latitude!, currentLocation!.longitude!),
-      ));
-      markers.add(Marker(
-        markerId: const MarkerId("destination"),
-        position: destination,
-      ));
+      isStarted = !isStarted;
     });
-    getPolyPoints();
+  }
+
+  Future<void> setDestinationMarker() async {
+    if (isValidDestination) {
+      setState(() {
+        isPickDestination = !isPickDestination;
+        markers.add(Marker(
+          markerId: const MarkerId("currentLocation"),
+          position:
+              LatLng(currentLocation!.latitude!, currentLocation!.longitude!),
+        ));
+        markers.add(Marker(
+          markerId: const MarkerId("destination"),
+          position: destination,
+        ));
+      });
+      getPolyline();
+    } else {
+      CustomSnackBar.showSnackBar(
+          null, "Please choose a valid location", 'warning');
+    }
+  }
+
+  void getPolyline() async {
+    context.read<MapCubit>().getPolyline(
+        LatLng(currentLocation!.latitude!, currentLocation!.longitude!),
+        destination);
+  }
+
+  void finishTrip() {
+    setTripStarted();
+    setState(() {
+      polylineCoordinates = [];
+      draggedAddress = "";
+      markers = {};
+      placeMarks = null;
+      isValidDestination = false;
+      address = null;
+    });
+    context.read<MapCubit>().init();
   }
 
   @override
@@ -139,9 +161,18 @@ class _MapPage extends State<MapPage> {
     return BlocConsumer<MapCubit, MapState>(
       listener: (context, state) {
         state.maybeWhen(
-            loaded: (LocationData currLocation, Location location) {
+            loaded: (LocationData currLocation, Location location,
+                List<ProductModel> productList) {
               currentLocation = currLocation;
+              this.productList = productList;
               getCurrentLocation(currLocation, location);
+            },
+            polylineLoaded: (List<LatLng> polyline) {
+              polylineCoordinates = polyline;
+              setTripStarted();
+            },
+            polylineLoadingFailed: (message) {
+              CustomSnackBar.showSnackBar(null, message, 'error');
             },
             orElse: () {});
       },
@@ -156,88 +187,20 @@ class _MapPage extends State<MapPage> {
             child: state.maybeWhen(
                 initial: () => const Center(child: CircularProgressIndicator()),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                loaded: (LocationData currLocation, Location location) {
-                  return Column(
-                    children: [
-                      Expanded(
-                          flex: 1,
-                          child: Stack(
-                            children: [
-                              getMap(context),
-                              Visibility(
-                                visible: isPickDestination,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Container(
-                                    width: 35,
-                                    height: 35,
-                                    margin: EdgeInsets.zero,
-                                    padding: EdgeInsets.zero,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black26,
-                                          blurRadius: 4.0,
-                                          spreadRadius: 2.0,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: IconButton(
-                                        padding: EdgeInsets.zero,
-                                        icon: const Icon(
-                                          Icons.close_rounded,
-                                          size: 24,
-                                        ),
-                                        // color: Colors.black,
-                                        onPressed: setPickDestination,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Visibility(
-                                visible: !isPickDestination,
-                                child: Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 100),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.pin_drop_rounded,
-                                      ),
-                                      onPressed: setPickDestination,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Visibility(
-                                  visible: isPickDestination,
-                                  child: _getCustomPin()),
-                              Visibility(
-                                visible: isPickDestination,
-                                child: Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _showDraggedAddress(),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )),
-                    ],
-                  );
-                },
+                loaded: (LocationData currLocation, Location location,
+                        List<ProductModel> productList) =>
+                    _mapContainer(context),
                 loadingFailed: (String message) {
                   return EmptyWidget(
                     title: message,
                     icon: Icons.gps_off_rounded,
                   );
                 },
+                polylineLoading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                polylineLoaded: (List<LatLng> polyline) =>
+                    _mapContainer(context),
+                polylineLoadingFailed: (message) => _mapContainer(context),
                 orElse: () => const Center(child: CircularProgressIndicator())),
           ),
         );
@@ -245,7 +208,191 @@ class _MapPage extends State<MapPage> {
     );
   }
 
-  GoogleMap getMap(BuildContext context) {
+  Widget _mapContainer(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+            flex: 1,
+            child: Stack(
+              children: [
+                _getMap(context),
+                Visibility(
+                  visible: isPickDestination,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Container(
+                      width: 35,
+                      height: 35,
+                      margin: EdgeInsets.zero,
+                      padding: EdgeInsets.zero,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4.0,
+                            spreadRadius: 2.0,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            color: Theme.of(context).colorScheme.outline,
+                            Icons.close_rounded,
+                            size: 24,
+                          ),
+                          constraints: const BoxConstraints(),
+                          onPressed: setPickDestination,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                      padding: const EdgeInsets.only(bottom: 40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Visibility(
+                            visible: !isPickDestination && !isStarted,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 12, bottom: 6),
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                margin: EdgeInsets.zero,
+                                padding: EdgeInsets.zero,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4.0,
+                                      spreadRadius: 2.0,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: IconButton(
+                                    icon: Icon(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                      size: 24,
+                                      Icons.pin_drop_rounded,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: setPickDestination,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Visibility(
+                            visible: isStarted,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 12, bottom: 6),
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                margin: EdgeInsets.zero,
+                                padding: EdgeInsets.zero,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4.0,
+                                      spreadRadius: 2.0,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: IconButton(
+                                    icon: Icon(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                      Icons.stop_circle_rounded,
+                                      size: 24, // Adjust size as needed
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    // Remove default constraints
+                                    onPressed: finishTrip,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Visibility(
+                            visible: isStarted,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 12),
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                margin: EdgeInsets.zero,
+                                padding: EdgeInsets.zero,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4.0,
+                                      spreadRadius: 2.0,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: IconButton(
+                                    icon: Icon(
+                                      color:
+                                          Theme.of(context).colorScheme.outline,
+                                      Icons.add_card,
+                                      size: 24, // Adjust size as needed
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    // Remove default constraints
+                                    onPressed: () {
+                                      _openTransactionModal(context);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )),
+                ),
+                Visibility(visible: isPickDestination, child: _getCustomPin()),
+                Visibility(
+                  visible: isPickDestination,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _showDraggedAddress(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )),
+      ],
+    );
+  }
+
+  GoogleMap _getMap(BuildContext context) {
     return GoogleMap(
       initialCameraPosition: CameraPosition(
         target: LatLng(currentLocation!.latitude!, currentLocation!.longitude!),
@@ -355,6 +502,24 @@ class _MapPage extends State<MapPage> {
     );
   }
 
+  void _openTransactionModal(BuildContext context) {
+    if (null != currentLocation) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return TransactionModal(
+            productList: productList,
+            currentLocation: currentLocation!,
+          );
+        },
+      );
+    } else {
+      CustomSnackBar.showSnackBar(
+          null, "Current location unavailable", 'warning');
+    }
+  }
+
   Widget _getCustomPin() {
     return Center(
       child: SizedBox(
@@ -363,5 +528,13 @@ class _MapPage extends State<MapPage> {
             width: 100, height: 100),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    if (null != locationSubscription) {
+      locationSubscription!.cancel();
+    }
+    super.dispose();
   }
 }

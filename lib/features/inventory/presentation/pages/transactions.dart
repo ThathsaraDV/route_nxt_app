@@ -1,8 +1,13 @@
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/domain/entity/transaction_model.dart';
+import 'package:route_nxt/features/common/domain/entity/transaction_product_model.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/transaction/transaction_cubit.dart';
 
 class Transaction extends StatefulWidget {
   const Transaction({super.key});
@@ -12,63 +17,52 @@ class Transaction extends StatefulWidget {
 }
 
 class _TransactionState extends State<Transaction> {
+  final ScrollController _scrollController = ScrollController();
   final DateFormat formatter = DateFormat('yyyy-MM-dd H:mm');
-  List<Map<String, dynamic>> products = [
-    {
-      'productId': 'P001',
-      'name': 'Widget Pro',
-      'code': 'WDP001',
-      'sellingPrice': 99.99,
-      'buyingPrice': 59.99,
-      'createdDate': DateTime(2023, 6, 15),
-      'quantity': 50,
-      'discount': 10
-    },
-    {
-      'productId': 'P002',
-      'name': 'Gadget Plus',
-      'code': 'GDP002',
-      'sellingPrice': 149.99,
-      'buyingPrice': 89.99,
-      'createdDate': DateTime(2023, 7, 20),
-      'quantity': 30,
-      'discount': 15
-    },
-    {
-      'productId': 'P003',
-      'name': 'Device Mini',
-      'code': 'DVM003',
-      'sellingPrice': 79.99,
-      'buyingPrice': 49.99,
-      'createdDate': DateTime(2023, 5, 10),
-      'quantity': 100,
-      'discount': 5
-    },
-    {
-      'productId': 'P004',
-      'name': 'Tool Set',
-      'code': 'TLS004',
-      'sellingPrice': 199.99,
-      'buyingPrice': 129.99,
-      'createdDate': DateTime(2023, 8, 5),
-      'quantity': 20,
-      'discount': 20
-    },
-    {
-      'productId': 'P005',
-      'name': 'Accessory Pack',
-      'code': 'ACP005',
-      'sellingPrice': 49.99,
-      'buyingPrice': 29.99,
-      'createdDate': DateTime(2023, 4, 25),
-      'quantity': 75,
-      'discount': 8
-    }
-  ];
+  late TransactionCubit _transactionCubit;
 
   @override
   void initState() {
     super.initState();
+    _transactionCubit = context.read<TransactionCubit>();
+    _transactionCubit.refreshTransactions();
+    _transactionCubit.fetchTransactions();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      _transactionCubit.state.maybeWhen(
+        loaded: (transactionList, hasMore) {
+          if (hasMore) {
+            _transactionCubit.fetchTransactions();
+          }
+        },
+        orElse: () {},
+      );
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    return currentScroll >= (maxScroll * 0.9);
+  }
+
+  String _formatCurrency(double? value) {
+    if (null != value) {
+      var formatter = NumberFormat.currency(customPattern: '#,###.##');
+      String amount = value.toString();
+      if (!amount.contains('.')) {
+        amount = "$amount.00";
+      }
+      amount = amount.replaceAll(',', '');
+      String formattedAmount = formatter.format(double.parse(amount));
+      return formattedAmount;
+    } else {
+      return "0.00";
+    }
   }
 
   @override
@@ -85,7 +79,7 @@ class _TransactionState extends State<Transaction> {
               icon: const Icon(Icons.arrow_back_rounded),
               iconSize: 24,
               onPressed: () {
-                GoRouter.of(context).pushReplacement('/home');
+                GoRouter.of(context).pop();
               },
             ),
             title: Text(
@@ -112,7 +106,7 @@ class _TransactionState extends State<Transaction> {
         ),
         Container(
           margin:
-          const EdgeInsets.only(top: 15, left: 20, right: 20, bottom: 18),
+              const EdgeInsets.only(top: 15, left: 20, right: 20, bottom: 18),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -125,7 +119,7 @@ class _TransactionState extends State<Transaction> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
-                    Icons.shelves,
+                    Icons.payments_rounded,
                     size: 24,
                   ),
                 ),
@@ -135,33 +129,64 @@ class _TransactionState extends State<Transaction> {
               ),
               const Text("Your Transactions",
                   style:
-                  TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600)),
+                      TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
-        Flexible(
-          child: SingleChildScrollView(
-            child: Column(
-              children: List.generate(products.length, (index) {
-                return _productCard(context, index);
-              }),
-            ),
+        Expanded(
+          child: BlocBuilder<TransactionCubit, TransactionState>(
+            builder: (context, state) {
+              return state.when(
+                  initial: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  loaded:
+                      (List<TransactionModel> transactionList, bool hasMore) {
+                    return ListView.builder(
+                      itemCount: transactionList.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index < transactionList.length) {
+                          return _transactionCard(
+                              context, transactionList[index]);
+                        } else {
+                          // Show loader at the bottom when fetching more items
+                          return hasMore
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                )
+                              : const SizedBox
+                                  .shrink(); // Don't show loader if no more items
+                        }
+                      },
+                      controller: _scrollController,
+                    );
+                  },
+                  loadingFailed: (message) => Center(child: Text(message)));
+            },
           ),
+        ),
+        const SizedBox(
+          height: 12,
         ),
       ],
     );
   }
 
-  _productCard(BuildContext context, int index) {
-    Map<String, dynamic> product = products[index];
+  _transactionCard(BuildContext context, TransactionModel model) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
       decoration: BoxDecoration(
         border: Border.all(
-            color: Theme.of(context).colorScheme.scrim.withOpacity(0.2),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerLowest
+                .withOpacity(0.2),
             width: 1),
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.onTertiary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -175,7 +200,7 @@ class _TransactionState extends State<Transaction> {
       child: ExpandableTheme(
         data: ExpandableThemeData(
           iconPadding:
-          const EdgeInsets.symmetric(vertical: 24.0, horizontal: 10),
+              const EdgeInsets.symmetric(vertical: 24.0, horizontal: 10),
           iconPlacement: ExpandablePanelIconPlacement.right,
           animationDuration: const Duration(milliseconds: 500),
           iconColor: Theme.of(context).colorScheme.primary,
@@ -211,10 +236,12 @@ class _TransactionState extends State<Transaction> {
                           width: 1.0,
                           style: BorderStyle.solid),
                     ),
-                    child: Icon(
-                      Icons.inventory_2_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 28,
+                    child: Center(
+                      child: FaIcon(
+                        FontAwesomeIcons.fileInvoice,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 28,
+                      ),
                     ),
                   ),
                 ),
@@ -223,94 +250,69 @@ class _TransactionState extends State<Transaction> {
                 ),
                 Expanded(
                     child: Container(
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("${product["name"]}",
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
-                          Text(
-                              formatter.format(DateTime.parse(
-                                  product["createdDate"].toString())),
-                              style: const TextStyle(
-                                  fontSize: 9.5, fontWeight: FontWeight.w500)),
-                          const SizedBox(
-                            height: 4,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.only(
-                                    top: 1.5, bottom: 1.5, left: 4, right: 4),
-                                decoration: BoxDecoration(
-                                  color:
-                                  CommonStyles.infoMsgBgColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    width: 1,
-                                    color: CommonStyles.infoMsgBgColor
-                                        .withOpacity(0.2),
-                                  ),
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        child: Row(
+                          children: [
+                            const Text("Transaction ID: ",
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600)),
+                            Flexible(
+                              child: Text(
+                                model.id,
+                                style: const TextStyle(
+                                  overflow: TextOverflow.ellipsis,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                child: const Text("ACTIVE",
-                                    style: TextStyle(
-                                        color: CommonStyles.infoMsgBgColor,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              Expanded(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    InkWell(
-                                      onTap: () async {},
-                                      child: Container(
-                                        padding: const EdgeInsets.only(
-                                            left: 8, right: 8, top: 2, bottom: 2),
-                                        margin: const EdgeInsets.only(bottom: 2),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                              width: 1,
-                                              color:
-                                              CommonStyles.successMsgBgColor),
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(8)),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.refresh,
-                                              size: 14,
-                                              color: CommonStyles.successMsgBgColor,
-                                            ),
-                                            SizedBox(
-                                              width: 5,
-                                            ),
-                                            Text(
-                                              "Update",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
-                                                color:
-                                                CommonStyles.successMsgBgColor,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                          formatter.format(
+                              DateTime.parse(model.createdDate.toString())),
+                          style: const TextStyle(
+                              fontSize: 9.5, fontWeight: FontWeight.w500)),
+                      const SizedBox(
+                        height: 4,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.only(
+                                top: 1.5, bottom: 1.5, left: 4, right: 4),
+                            decoration: BoxDecoration(
+                              color: CommonStyles.warningDarkColor
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                width: 1,
+                                color: CommonStyles.warningDarkColor
+                                    .withOpacity(0.2),
+                              ),
+                            ),
+                            child: Text(
+                                "Total: ${_formatCurrency(model.total)}",
+                                style: const TextStyle(
+                                    color: CommonStyles.warningDarkColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
-                    )),
+                    ],
+                  ),
+                )),
                 const SizedBox(
                   width: 10,
                 )
@@ -323,7 +325,7 @@ class _TransactionState extends State<Transaction> {
           ),
           expanded: Container(
             padding:
-            const EdgeInsets.only(top: 0, bottom: 12, left: 12, right: 12),
+                const EdgeInsets.only(top: 0, bottom: 12, left: 12, right: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -338,149 +340,123 @@ class _TransactionState extends State<Transaction> {
                 const SizedBox(
                   height: 8,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Name',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["name"],
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Code',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["code"],
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                  ],
-                ),
-                const SizedBox(
-                  height: 8,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Buying Price',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["buyingPrice"].toString(),
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Selling Price',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["sellingPrice"].toString(),
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                  ],
-                ),
-                const SizedBox(
-                  height: 8,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Quantity',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["quantity"].toString(),
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Discount',
-                              style: CommonStyles.summaryCardDataTitleStyles
-                                  .copyWith(),
-                            ),
-                            Text(
-                              product["discount"].toString(),
-                              style:
-                              CommonStyles.summaryCardDataStyles.copyWith(),
-                            ),
-                          ],
-                        )),
-                  ],
-                ),
-                const SizedBox(
-                  height: 2,
-                ),
+                ...model.productList
+                    .map((product) => _buildProductCard(product)),
+                const SizedBox(height: 2),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildProductCard(TransactionProductModel product) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onTertiary,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Name',
+                      style: CommonStyles.summaryCardDataTitleStyles.copyWith(),
+                    ),
+                    Text(
+                      product.name,
+                      style: CommonStyles.summaryCardDataStyles.copyWith(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quantity',
+                      style: CommonStyles.summaryCardDataTitleStyles.copyWith(),
+                    ),
+                    Text(
+                      product.quantity.toString(),
+                      style: CommonStyles.summaryCardDataStyles.copyWith(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total',
+                      style: CommonStyles.summaryCardDataTitleStyles.copyWith(),
+                    ),
+                    Text(
+                      _formatCurrency(product.total),
+                      style: CommonStyles.summaryCardDataStyles.copyWith(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Discount',
+                      style: CommonStyles.summaryCardDataTitleStyles.copyWith(),
+                    ),
+                    Text(
+                      "${_formatCurrency(product.discount)} %",
+                      style: CommonStyles.summaryCardDataStyles.copyWith(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }

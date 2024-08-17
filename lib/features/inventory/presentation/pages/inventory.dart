@@ -73,7 +73,7 @@ class _InventoryState extends State<Inventory> {
                   icon: const Icon(Icons.arrow_back_rounded),
                   iconSize: 24,
                   onPressed: () {
-                    GoRouter.of(context).pushReplacement('/home');
+                    GoRouter.of(context).pop();
                   },
                 ),
                 title: Text(
@@ -160,9 +160,12 @@ class _InventoryState extends State<Inventory> {
       margin: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
       decoration: BoxDecoration(
         border: Border.all(
-            color: Theme.of(context).colorScheme.scrim.withOpacity(0.2),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerLowest
+                .withOpacity(0.2),
             width: 1),
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.onTertiary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -273,7 +276,8 @@ class _InventoryState extends State<Inventory> {
                               children: [
                                 InkWell(
                                   onTap: () async {
-                                    GoRouter.of(context).go('/updateProduct', extra: product.id);
+                                    GoRouter.of(context).push('/updateProduct',
+                                        extra: product.id);
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.only(

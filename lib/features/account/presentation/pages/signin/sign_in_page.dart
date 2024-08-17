@@ -53,7 +53,7 @@ class _SignInPage extends State<SignInPage> {
                     if (snapshot.hasData) {
                       GoRouter.of(context).go('/home');
                     } else {
-                      CustomSnackBar.showSnackBar(null, "Please login again. Session invalid.", 'warning');
+                      CustomSnackBar.showSnackBar(null, "Please login again. Session expired.", 'warning');
                     }
                   },
                   bioAuthFailure: (String message) {

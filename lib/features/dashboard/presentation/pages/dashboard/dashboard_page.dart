@@ -333,7 +333,8 @@ class _DashboardPage extends State<DashboardPage> {
                           ),
                         ),
                         onTap: () {
-                          GoRouter.of(context).go('/inventory');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/inventory');
                         },
                       ),
                       ListTile(
@@ -355,7 +356,8 @@ class _DashboardPage extends State<DashboardPage> {
                           ),
                         ),
                         onTap: () {
-                          GoRouter.of(context).go('/transactions');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/transactions');
                         },
                       ),
                       ListTile(
@@ -378,7 +380,8 @@ class _DashboardPage extends State<DashboardPage> {
                           ),
                         ),
                         onTap: () {
-                          GoRouter.of(context).go('/newProduct');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/newProduct');
                         },
                       ),
                       ListTile(

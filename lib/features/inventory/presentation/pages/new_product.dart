@@ -95,7 +95,7 @@ class _NewProductState extends State<NewProduct> {
                     icon: const Icon(Icons.arrow_back_rounded),
                     iconSize: 24,
                     onPressed: () {
-                      GoRouter.of(context).pushReplacement('/home');
+                      GoRouter.of(context).pop();
                     },
                   ),
                   title: Text(

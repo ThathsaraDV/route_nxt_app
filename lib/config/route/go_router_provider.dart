@@ -15,6 +15,7 @@ import 'package:route_nxt/features/dashboard/presentation/pages/map/map_page.dar
 import 'package:route_nxt/features/dashboard/presentation/pages/reminder/reminder_page.dart';
 import 'package:route_nxt/features/inventory/presentation/bloc/inventory/inventory_cubit.dart';
 import 'package:route_nxt/features/inventory/presentation/bloc/new_product/new_product_cubit.dart';
+import 'package:route_nxt/features/inventory/presentation/bloc/transaction/transaction_cubit.dart';
 import 'package:route_nxt/features/inventory/presentation/bloc/update_product/update_product_cubit.dart';
 import 'package:route_nxt/features/inventory/presentation/pages/inventory.dart';
 import 'package:route_nxt/features/inventory/presentation/pages/new_product.dart';
@@ -166,8 +167,8 @@ class GoRouterProvider {
               key: state.pageKey,
               child: MultiBlocProvider(
                 providers: [
-                  BlocProvider<AuthBloc>.value(
-                    value: sl<AuthBloc>(),
+                  BlocProvider<TransactionCubit>.value(
+                    value: sl<TransactionCubit>(),
                   ),
                 ],
                 child: const Transaction(),
