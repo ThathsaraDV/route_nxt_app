@@ -14,13 +14,12 @@ class CustomSnackBar {
         padding: const EdgeInsets.only(top: 20),
         content: Container(
           padding: const EdgeInsets.all(0),
-          height: 70,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.topCenter,
             children: [
               Container(
-                padding: const EdgeInsets.all(0),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: type == 'success'
                       ? CommonStyles.successMsgBgColor
@@ -91,15 +90,19 @@ class CustomSnackBar {
                         'asset/svg/snackBar/bubbles.svg',
                         width: 40,
                         height: 40,
-                        color: type == 'success'
-                            ? CommonStyles.successDarkColor.withOpacity(0.5)
-                            : type == 'error'
-                                ? CommonStyles.errorDarkColor.withOpacity(0.65)
-                                : type == 'warning'
-                                    ? CommonStyles.warningDarkColor
+                        colorFilter: ColorFilter.mode(
+                            type == 'success'
+                                ? CommonStyles.successDarkColor.withOpacity(0.5)
+                                : type == 'error'
+                                    ? CommonStyles.errorDarkColor
                                         .withOpacity(0.65)
-                                    : CommonStyles.infoDarkColor.withOpacity(0.65),
-                      )
+                                    : type == 'warning'
+                                        ? CommonStyles.warningDarkColor
+                                            .withOpacity(0.65)
+                                        : CommonStyles.infoDarkColor
+                                            .withOpacity(0.65),
+                            BlendMode.srcIn),
+                      ),
                     ],
                   ),
                 ),
@@ -116,13 +119,15 @@ class CustomSnackBar {
                       'asset/svg/snackBar/back.svg',
                       // width: 40,
                       height: 36,
-                      color: type == 'success'
-                          ? CommonStyles.successDarkColor
-                          : type == 'error'
-                              ? CommonStyles.errorDarkColor
-                              : type == 'warning'
-                                  ? CommonStyles.warningDarkColor
-                                  : CommonStyles.infoDarkColor,
+                      colorFilter: ColorFilter.mode(
+                          type == 'success'
+                              ? CommonStyles.successDarkColor
+                              : type == 'error'
+                                  ? CommonStyles.errorDarkColor
+                                  : type == 'warning'
+                                      ? CommonStyles.warningDarkColor
+                                      : CommonStyles.infoDarkColor,
+                          BlendMode.srcIn),
                     ),
                     Positioned(
                       top: 8,

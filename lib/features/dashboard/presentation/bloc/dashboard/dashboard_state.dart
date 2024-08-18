@@ -6,7 +6,7 @@ abstract class DashboardState with _$DashboardState {
 
   const factory DashboardState.stepLoading() = _StepLoading;
 
-  const factory DashboardState.stepLoaded() = _StepLoaded;
+  const factory DashboardState.stepLoaded(UserModel user) = _StepLoaded;
 
   const factory DashboardState.stepLoadingFailed(String message) =
       _StepLoadingFailed;

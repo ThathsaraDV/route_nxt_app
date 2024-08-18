@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:go_router/go_router.dart';
-import 'package:route_nxt/config/constants/common_styles.dart';
 import 'package:route_nxt/core/utility/service_locator.dart';
+import 'package:route_nxt/features/common/domain/entity/user_model.dart';
 import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/common/presentation/pages/splash_screen.dart';
@@ -23,15 +23,18 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPage extends State<DashboardPage> {
   bool isSideMenuOpen = true;
   bool darkMode = false;
+  late User user;
+  UserModel userModel = UserModel.noArgs();
 
   @override
   void initState() {
     super.initState();
+    user = context.read<AuthBloc>().getCurrentUser();
     setState(() {
       darkMode = context.read<ThemeBloc>().getStoredDarkMode();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardCubit>().getAccountDetails();
+      context.read<DashboardCubit>().getAccountDetails(user.uid);
     });
   }
 
@@ -123,7 +126,11 @@ class _DashboardPage extends State<DashboardPage> {
                                       GoRouter.of(context)
                                           .pushReplacement('/login');
                                     },
-                                    stepLoaded: () {},
+                                    stepLoaded: (UserModel userModel) {
+                                      setState(() {
+                                        this.userModel = userModel;
+                                      });
+                                    },
                                     orElse: () {});
                               },
                               builder: (context, state) {
@@ -131,7 +138,7 @@ class _DashboardPage extends State<DashboardPage> {
                                     initial: () => const SplashScreen(),
                                     stepLoading: () => const Center(
                                         child: CircularProgressIndicator()),
-                                    stepLoaded: () {
+                                    stepLoaded: (UserModel userModel) {
                                       return widget.navigationShell;
                                     },
                                     stepLoadingFailed: (e) => const Center(
@@ -162,7 +169,14 @@ class _DashboardPage extends State<DashboardPage> {
   Widget drawer(AuthState authState) {
     return Container(
       decoration: BoxDecoration(
-        gradient: CommonStyles.lightCardGradient1,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).colorScheme.onTertiary,
+            Theme.of(context).colorScheme.surface,
+          ],
+        ),
         borderRadius: const BorderRadius.only(
             topRight: Radius.circular(32), bottomRight: Radius.circular(32)),
       ),
@@ -229,7 +243,7 @@ class _DashboardPage extends State<DashboardPage> {
                         const SizedBox(
                           height: 6,
                         ),
-                        Text('thathsara',
+                        Text(userModel.displayName ?? "N/A",
                             style: TextStyle(
                                 fontSize: 16,
                                 color: Theme.of(context).colorScheme.primary,
@@ -237,7 +251,7 @@ class _DashboardPage extends State<DashboardPage> {
                         const SizedBox(
                           height: 2,
                         ),
-                        Text('thathsaradananjaya@gmail.com',
+                        Text(userModel.email ?? "N/A",
                             style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context).colorScheme.primary,
@@ -307,7 +321,7 @@ class _DashboardPage extends State<DashboardPage> {
                             right: 4.5,
                           ),
                           child: const Icon(
-                            Icons.inventory_2_rounded,
+                            Icons.shelves,
                             size: 20,
                           ),
                         ),
@@ -316,11 +330,11 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/inventory');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/inventory');
                         },
                       ),
                       ListTile(
@@ -339,11 +353,11 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/transactions');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/transactions');
                         },
                       ),
                       ListTile(
@@ -354,20 +368,20 @@ class _DashboardPage extends State<DashboardPage> {
                             left: 10,
                           ),
                           child: const Icon(
-                            Icons.shelves,
+                            Icons.inventory_2_rounded,
                             size: 20,
                           ),
                         ),
                         title: const Text(
-                          'Products',
+                          'New Product',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () {
-                          // GoRouter.of(context).go('/products');
+                          Navigator.pop(context);
+                          GoRouter.of(context).push('/newProduct');
                         },
                       ),
                       ListTile(
@@ -385,7 +399,6 @@ class _DashboardPage extends State<DashboardPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            // color: AppColor.shadingColor_3,
                           ),
                         ),
                         onTap: () async {

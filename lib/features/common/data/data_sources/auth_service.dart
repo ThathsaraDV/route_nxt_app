@@ -6,7 +6,7 @@ class AuthService {
 
   AuthService(this._firebaseAuth);
 
-  Future<UserModel?> signUpUser(
+  Future<UserModel> signUpUser(
       String email,
       String password,
       ) async {
@@ -24,7 +24,7 @@ class AuthService {
           displayName: firebaseUser.displayName ?? '',
         );
       } else {
-        return UserModel.empty;
+        return UserModel.noArgs();
       }
     } on FirebaseAuthException {
       rethrow;
@@ -47,6 +47,14 @@ class AuthService {
 
   Future<void> signOutUser() async {
     await _firebaseAuth.signOut();
+  }
+
+  Stream<User?> getUserStream() {
+    return _firebaseAuth.authStateChanges();
+  }
+
+  User? getCurrentUser() {
+    return _firebaseAuth.currentUser;
   }
 
 }

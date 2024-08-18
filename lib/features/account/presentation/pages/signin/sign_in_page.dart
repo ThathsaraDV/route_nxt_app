@@ -46,16 +46,14 @@ class _SignInPage extends State<SignInPage> {
                   signInFailure: (message) {
                     CustomSnackBar.showSnackBar(null, message, 'error');
                   },
-                  signInSuccess: (message) {
-                    if (snapshot.hasData) {
-                      GoRouter.of(context).go('/home');
-                    }
+                  signInSuccess: (user) {
+                    GoRouter.of(context).go('/home');
                   },
                   bioAuthSuccess: (bool success) {
                     if (snapshot.hasData) {
                       GoRouter.of(context).go('/home');
                     } else {
-                      CustomSnackBar.showSnackBar(null, "Please login again. Session invalid.", 'warning');
+                      CustomSnackBar.showSnackBar(null, "Please login again. Session expired.", 'warning');
                     }
                   },
                   bioAuthFailure: (String message) {
@@ -76,9 +74,16 @@ class _SignInPage extends State<SignInPage> {
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
                       signInFailure: (e) => signInWidget(context),
-                      signInSuccess: (newNumber) {
-                        return signInWidget(context);
+                      signInSuccess: (user) =>
+                          const Center(child: CircularProgressIndicator()),
+                      bioAuthSuccess: (bool success) {
+                        if (snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        } else {
+                          return signInWidget(context);
+                        }
                       },
+                      bioAuthFailure: (String message) => signInWidget(context),
                       orElse: () => signInWidget(context)),
                 ),
               );

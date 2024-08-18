@@ -51,13 +51,7 @@ class _SignUpPage extends State<SignUpPage> {
                     CustomSnackBar.showSnackBar(null, message, 'error');
                   },
                   signUpSuccess: (message) {
-                    if (snapshot.hasData) {
-                      GoRouter.of(context).go('/login');
-                    }
-                    if (snapshot.hasError) {
-                      CustomSnackBar.showSnackBar(
-                          null, snapshot.error.toString(), 'error');
-                    }
+                    GoRouter.of(context).go('/login');
                   },
                   orElse: () {});
             },
