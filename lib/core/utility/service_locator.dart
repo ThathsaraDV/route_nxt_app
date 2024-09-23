@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:local_auth/local_auth.dart';
@@ -12,7 +11,12 @@ import 'package:route_nxt/features/common/data/data_sources/user_service.dart';
 import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/dashboard/data/data_sources/local/app_database.dart';
+import 'package:route_nxt/features/dashboard/data/data_sources/remote/distance_service.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/distance/distance_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sales/sales_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sold/sold_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/stock/stock_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/reminder/reminder_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/transaction/transaction_record_cubit.dart';
@@ -28,7 +32,6 @@ final sl = GetIt.instance;
 Future<void> initializeDependencies() async {
   final database =
       await $FloorAppDatabase.databaseBuilder('app_database.db').build();
-  await dotenv.load(fileName: ".env");
   sl.registerSingleton<AppDatabase>(database);
   sl.registerSingleton<GoRouterProvider>(GoRouterProvider());
   sl.registerSingleton<FirebaseAuth>(FirebaseAuth.instance);
@@ -42,15 +45,19 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<UserService>(UserService(sl()));
   sl.registerSingleton<InventoryService>(InventoryService(sl()));
   sl.registerSingleton<TransactionService>(TransactionService(sl()));
+  sl.registerSingleton<DistanceService>(DistanceService(sl()));
 
   sl.registerSingleton<ThemeBloc>(
       ThemeBloc(await SharedPreferences.getInstance()));
   sl.registerSingleton<AuthBloc>(AuthBloc(sl(), sl(), sl()));
-  sl.registerSingleton<DashboardCubit>(
-      DashboardCubit(sl(), await SharedPreferences.getInstance()));
+  sl.registerSingleton<DashboardCubit>(DashboardCubit(sl()));
+  sl.registerSingleton<DistanceCubit>(DistanceCubit(sl(), sl()));
+  sl.registerSingleton<SalesCubit>(SalesCubit(sl(), sl()));
+  sl.registerSingleton<SoldCubit>(SoldCubit(sl(), sl()));
+  sl.registerSingleton<StockCubit>(StockCubit(sl(), sl()));
   sl.registerSingleton<ReminderCubit>(
       ReminderCubit(sl.get<AppDatabase>().reminderDao, sl()));
-  sl.registerSingleton<MapCubit>(MapCubit(sl(), sl(), sl()));
+  sl.registerSingleton<MapCubit>(MapCubit(sl(), sl(), sl(), sl()));
   sl.registerSingleton<NewProductCubit>(NewProductCubit(sl(), sl()));
   sl.registerSingleton<InventoryCubit>(InventoryCubit(sl(), sl()));
   sl.registerSingleton<UpdateProductCubit>(UpdateProductCubit(sl(), sl()));

@@ -1,6 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sales/sales_cubit.dart';
 
 class SalesBarChart extends StatefulWidget {
   const SalesBarChart({super.key});
@@ -13,7 +15,7 @@ class _SalesBarChartState extends State<SalesBarChart> {
   final Duration animDuration = const Duration(milliseconds: 250);
   int touchedIndex = -1;
 
-  BarChartData mainBarData() {
+  BarChartData mainBarData(Map<String, double> barChartData) {
     return BarChartData(
       barTouchData: BarTouchData(
         touchTooltipData: BarTouchTooltipData(
@@ -107,7 +109,7 @@ class _SalesBarChartState extends State<SalesBarChart> {
       borderData: FlBorderData(
         show: false,
       ),
-      barGroups: showingGroups(),
+      barGroups: showingGroups(barChartData),
       gridData: const FlGridData(show: true, drawVerticalLine: false),
     );
   }
@@ -197,26 +199,23 @@ class _SalesBarChartState extends State<SalesBarChart> {
     );
   }
 
-  List<BarChartGroupData> showingGroups() => List.generate(7, (i) {
-        switch (i) {
-          case 0:
-            return makeGroupData(0, 1000, isTouched: i == touchedIndex);
-          case 1:
-            return makeGroupData(1, 2000, isTouched: i == touchedIndex);
-          case 2:
-            return makeGroupData(2, 1500, isTouched: i == touchedIndex);
-          case 3:
-            return makeGroupData(3, 2800, isTouched: i == touchedIndex);
-          case 4:
-            return makeGroupData(4, 4100, isTouched: i == touchedIndex);
-          case 5:
-            return makeGroupData(5, 5600, isTouched: i == touchedIndex);
-          case 6:
-            return makeGroupData(6, 2200, isTouched: i == touchedIndex);
-          default:
-            return throw Error();
-        }
-      });
+  List<BarChartGroupData> showingGroups(Map<String, double> barChartData) {
+    const Map<String, int> weekDayToIndex = {
+      'Monday': 0,
+      'Tuesday': 1,
+      'Wednesday': 2,
+      'Thursday': 3,
+      'Friday': 4,
+      'Saturday': 5,
+      'Sunday': 6,
+    };
+
+    return List.generate(7, (i) {
+      String weekDay = weekDayToIndex.keys.elementAt(i);
+      double value = barChartData[weekDay] ?? 0.0;
+      return makeGroupData(i, value, isTouched: i == touchedIndex);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -254,9 +253,24 @@ class _SalesBarChartState extends State<SalesBarChart> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: BarChart(
-                          mainBarData(),
-                          swapAnimationDuration: animDuration,
+                        child: BlocBuilder<SalesCubit, SalesState>(
+                          builder: (context, state) {
+                            return state.when(
+                                initial: () => _getBarChartText("N/A"),
+                                loading: () => Center(
+                                        child: Transform.scale(
+                                      scale: 0.5,
+                                      child: const CircularProgressIndicator(),
+                                    )),
+                                loaded: (double netTotal,
+                                        Map<String, double> barChartData) =>
+                                    BarChart(
+                                      mainBarData(barChartData),
+                                      swapAnimationDuration: animDuration,
+                                    ),
+                                loadingFailed: (message) =>
+                                    _getBarChartText(message));
+                          },
                         ),
                       ),
                     ),
@@ -269,6 +283,33 @@ class _SalesBarChartState extends State<SalesBarChart> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _getBarChartText(String message) {
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.cloud_off,
+            size: 54,
+          ),
+          const SizedBox(
+            height: 6,
+          ),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

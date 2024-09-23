@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/distance/distance_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sales/sales_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sold/sold_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/stock/stock_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/widgets/home/product_pie_chart.dart';
 import 'package:route_nxt/features/dashboard/presentation/widgets/home/sales_bar_chart.dart';
+import 'package:route_nxt/features/inventory/data/models/product_model.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,6 +21,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePage extends State<HomePage> {
   final _accountCardController = PageController();
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<DistanceCubit>().getDistanceThisWeek();
+    context.read<SalesCubit>().getNetTotalThisWeek();
+    context.read<StockCubit>().getLowStockProducts();
+    context.read<SoldCubit>().getProductsSoldThisWeek();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +100,7 @@ class _HomePage extends State<HomePage> {
           ),
         ],
       ),
-      padding: const EdgeInsets.only(left: 8, top: 5, right: 8, bottom: 5),
+      padding: const EdgeInsets.only(left: 8, top: 5, right: 8, bottom: 3),
       child: Column(
         children: [
           Row(
@@ -135,21 +150,38 @@ class _HomePage extends State<HomePage> {
               )
             ],
           ),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('12000',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.left)
+              BlocBuilder<DistanceCubit, DistanceState>(
+                builder: (context, state) {
+                  return state.when(
+                      initial: () => _getDistanceText("N/A"),
+                      loading: () => Center(
+                              child: Transform.scale(
+                            scale: 0.5,
+                            child: const CircularProgressIndicator(),
+                          )),
+                      loaded: (double distance) =>
+                          _getDistanceText("${distance.toStringAsFixed(3)} km"),
+                      loadingFailed: (message) => _getDistanceText(message));
+                },
+              )
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _getDistanceText(String distance) {
+    return Text(distance,
+        style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            overflow: TextOverflow.ellipsis),
+        textAlign: TextAlign.left);
   }
 
   _getProfitCard(BuildContext context) {
@@ -166,7 +198,7 @@ class _HomePage extends State<HomePage> {
           ),
         ],
       ),
-      padding: const EdgeInsets.only(left: 8, top: 5, right: 8, bottom: 5),
+      padding: const EdgeInsets.only(left: 8, top: 5, right: 8, bottom: 2),
       child: Column(
         children: [
           Row(
@@ -216,21 +248,39 @@ class _HomePage extends State<HomePage> {
               )
             ],
           ),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('20000.00',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.left)
+              BlocBuilder<SalesCubit, SalesState>(
+                builder: (context, state) {
+                  return state.when(
+                      initial: () => _getNetProfitText("N/A"),
+                      loading: () => Center(
+                              child: Transform.scale(
+                            scale: 0.5,
+                            child: const CircularProgressIndicator(),
+                          )),
+                      loaded:
+                          (double netTotal, Map<String, double> barChartData) =>
+                              _getNetProfitText(netTotal.toStringAsFixed(2)),
+                      loadingFailed: (message) => _getNetProfitText(message));
+                },
+              )
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _getNetProfitText(String netProfit) {
+    return Text(netProfit,
+        style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            overflow: TextOverflow.ellipsis),
+        textAlign: TextAlign.left);
   }
 
   _getInventoryCard(BuildContext context, MediaQueryData data) {
@@ -249,7 +299,7 @@ class _HomePage extends State<HomePage> {
       ),
       padding: const EdgeInsets.only(left: 8, top: 6, right: 10, bottom: 8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -299,40 +349,63 @@ class _HomePage extends State<HomePage> {
             ],
           ),
           SizedBox(
-            height: data.size.height * 0.01,
+            height: data.size.height * 0.015,
           ),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Product 1',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+              BlocBuilder<StockCubit, StockState>(
+                builder: (context, state) {
+                  return state.when(
+                    initial: () => _getLowProductList([], "N/A"),
+                    loading: () => Center(
+                      child: Transform.scale(
+                        scale: 0.8,
+                        child: const CircularProgressIndicator(),
                       ),
-                      textAlign: TextAlign.left),
-                  Text('Product 2',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.left),
-                  Text('Product 3',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.left)
-                ],
+                    ),
+                    loaded: (List<ProductModel> productList) {
+                      if (productList.isEmpty) {
+                        return _getLowProductList([], "No Data");
+                      } else {
+                        return _getLowProductList(productList, "");
+                      }
+                    },
+                    loadingFailed: (message) => _getLowProductList([], message),
+                  );
+                },
               )
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _getLowProductList(List<ProductModel> productList, String message) {
+    if (productList.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: productList.map((product) {
+          return Text(
+            product.name ?? "N/A",
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                overflow: TextOverflow.ellipsis),
+            textAlign: TextAlign.right,
+          );
+        }).toList(),
+      );
+    } else {
+      return Text(message,
+          style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              overflow: TextOverflow.ellipsis),
+          textAlign: TextAlign.left);
+    }
   }
 
   _getCharts(BuildContext context, MediaQueryData data) {

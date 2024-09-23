@@ -11,9 +11,10 @@ class TransactionModel {
   @TimestampConverter()
   DateTime? createdDate;
   double total;
+  double netTotal;
   List<TransactionProductModel> productList;
 
-  TransactionModel(this.createdDate, this.total, this.productList);
+  TransactionModel(this.createdDate, this.total, this.productList, this.netTotal);
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) =>
       _$TransactionModelFromJson(json);

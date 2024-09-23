@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geocoding/geocoding.dart' as gc;
+import 'package:geolocator/geolocator.dart' as gl;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart'
@@ -10,6 +12,7 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:location/location.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/common/presentation/bloc/theme/theme_bloc.dart';
 import 'package:route_nxt/features/common/presentation/widgets/custom_snackbar.dart';
 import 'package:route_nxt/features/common/presentation/widgets/empty_widget.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
@@ -27,7 +30,7 @@ class MapPage extends StatefulWidget {
 
 // TODO: Validate Optimization if user has no previous transaction date
 class _MapPage extends State<MapPage> {
-  final Completer<GoogleMapController> _controller = Completer();
+  late Completer<GoogleMapController> _controller;
   late Location location;
   LocationData? currentLocation;
   late LatLng destination;
@@ -41,14 +44,24 @@ class _MapPage extends State<MapPage> {
   bool isValidDestination = false;
   List<ProductModel> productList = [];
   StreamSubscription<LocationData>? locationSubscription;
+  double _totalDistance = 0.000;
+  gl.Position? _lastPosition;
+  StreamSubscription<gl.Position>? distanceSubscription;
+  late String _darkMapStyle;
 
   @override
   void initState() {
     super.initState();
     _initializeMapRenderer();
+    _loadMapStyles();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshCompleter();
       context.read<MapCubit>().init();
     });
+  }
+
+  Future _loadMapStyles() async {
+    _darkMapStyle  = await rootBundle.loadString('asset/json/map_night.json');
   }
 
   void _initializeMapRenderer() {
@@ -59,18 +72,18 @@ class _MapPage extends State<MapPage> {
     }
   }
 
-  void getCurrentLocation(
-      LocationData currLocation, Location newLocation) async {
+  void getCurrentLocation(Location newLocation) async {
     location = newLocation;
     GoogleMapController googleMapController = await _controller.future;
     locationSubscription = location.onLocationChanged.listen(
-      (newLoc) {
+      (newLoc) async {
         currentLocation = newLoc;
-        if (isStarted) {
+        if (isStarted && _controller.isCompleted) {
+          var zoom = await googleMapController.getZoomLevel();
           googleMapController.animateCamera(
             CameraUpdate.newCameraPosition(
               CameraPosition(
-                zoom: 13.5,
+                zoom: zoom,
                 target: LatLng(
                   newLoc.latitude!,
                   newLoc.longitude!,
@@ -114,10 +127,12 @@ class _MapPage extends State<MapPage> {
     setState(() {
       isStarted = !isStarted;
     });
+    _startTracking();
   }
 
   Future<void> setDestinationMarker() async {
     if (isValidDestination) {
+      markers.clear();
       setState(() {
         isPickDestination = !isPickDestination;
         markers.add(Marker(
@@ -130,6 +145,7 @@ class _MapPage extends State<MapPage> {
           position: destination,
         ));
       });
+      _refreshCompleter();
       getPolyline();
     } else {
       CustomSnackBar.showSnackBar(
@@ -143,8 +159,35 @@ class _MapPage extends State<MapPage> {
         destination);
   }
 
+  void _startTracking() {
+    distanceSubscription = gl.Geolocator.getPositionStream(
+      locationSettings: const gl.LocationSettings(
+        accuracy: gl.LocationAccuracy.bestForNavigation,
+        distanceFilter: 1,
+      ),
+    ).listen((gl.Position position) {
+      if (_lastPosition != null) {
+        double distance = gl.Geolocator.distanceBetween(
+          _lastPosition!.latitude,
+          _lastPosition!.longitude,
+          position.latitude,
+          position.longitude,
+        );
+
+        setState(() {
+          _totalDistance += (distance/1000);
+        });
+      }
+
+      _lastPosition = position;
+    });
+  }
+
   void finishTrip() {
     setTripStarted();
+    distanceSubscription?.cancel();
+    _refreshCompleter();
+    context.read<MapCubit>().finishTrip(_totalDistance);
     setState(() {
       polylineCoordinates = [];
       draggedAddress = "";
@@ -152,8 +195,13 @@ class _MapPage extends State<MapPage> {
       placeMarks = null;
       isValidDestination = false;
       address = null;
+      _totalDistance = 0.000;
     });
-    context.read<MapCubit>().init();
+  }
+
+  void _refreshCompleter() {
+    locationSubscription?.cancel();
+    _controller = Completer();
   }
 
   @override
@@ -165,13 +213,15 @@ class _MapPage extends State<MapPage> {
                 List<ProductModel> productList) {
               currentLocation = currLocation;
               this.productList = productList;
-              getCurrentLocation(currLocation, location);
+              getCurrentLocation(location);
             },
             polylineLoaded: (List<LatLng> polyline) {
               polylineCoordinates = polyline;
+              getCurrentLocation(location);
               setTripStarted();
             },
             polylineLoadingFailed: (message) {
+              getCurrentLocation(location);
               CustomSnackBar.showSnackBar(null, message, 'error');
             },
             orElse: () {});
@@ -246,6 +296,36 @@ class _MapPage extends State<MapPage> {
                           constraints: const BoxConstraints(),
                           onPressed: setPickDestination,
                         ),
+                      ),
+                    ),
+                  ),
+                ),
+                Visibility(
+                  visible: isStarted,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      width: 150,
+                      height: 35,
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: EdgeInsets.zero,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4.0,
+                            spreadRadius: 2.0,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text("${_totalDistance.toStringAsFixed(3)} km",
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.scrim,
+                                overflow: TextOverflow.ellipsis,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -395,7 +475,7 @@ class _MapPage extends State<MapPage> {
   GoogleMap _getMap(BuildContext context) {
     return GoogleMap(
       initialCameraPosition: CameraPosition(
-        target: LatLng(currentLocation!.latitude!, currentLocation!.longitude!),
+        target: LatLng(currentLocation?.latitude! ?? 0.00, currentLocation?.longitude! ?? 0.00),
         zoom: 13.5,
       ),
       markers: markers,
@@ -408,16 +488,23 @@ class _MapPage extends State<MapPage> {
         ),
       },
       onMapCreated: (mapController) {
-        _controller.complete(mapController);
+        if (!_controller.isCompleted) {
+          _controller.complete(mapController);
+        }
       },
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
       onCameraIdle: () {
-        _getAddress(destination);
+        if (isPickDestination) {
+          _getAddress(destination);
+        }
       },
       onCameraMove: (cameraPosition) {
-        destination = cameraPosition.target;
+        if (isPickDestination) {
+          destination = cameraPosition.target;
+        }
       },
+      style: context.read<ThemeBloc>().getIsDarkMode() ? _darkMapStyle : null,
     );
   }
 

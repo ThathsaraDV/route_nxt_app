@@ -7,6 +7,10 @@ import 'package:route_nxt/features/account/presentation/pages/signin/sign_in_pag
 import 'package:route_nxt/features/account/presentation/pages/signup/sign_up_page.dart';
 import 'package:route_nxt/features/common/presentation/bloc/auth/auth_bloc.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/dashboard/dashboard_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/distance/distance_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sales/sales_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sold/sold_cubit.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/stock/stock_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/map/map_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/bloc/reminder/reminder_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/pages/dashboard/dashboard_page.dart';
@@ -98,7 +102,23 @@ class GoRouterProvider {
                 GoRoute(
                   path: '/home',
                   builder: (BuildContext context, GoRouterState state) =>
-                      const HomePage(),
+                      MultiBlocProvider(
+                    providers: [
+                      BlocProvider<DistanceCubit>.value(
+                        value: sl<DistanceCubit>(),
+                      ),
+                      BlocProvider<SoldCubit>.value(
+                        value: sl<SoldCubit>(),
+                      ),
+                      BlocProvider<SalesCubit>.value(
+                        value: sl<SalesCubit>(),
+                      ),
+                      BlocProvider<StockCubit>.value(
+                        value: sl<StockCubit>(),
+                      ),
+                    ],
+                    child: const HomePage(),
+                  ),
                 ),
               ],
             ),
