@@ -28,14 +28,16 @@ class TransactionModal extends StatefulWidget {
 class _TransactionModalState extends State<TransactionModal> {
   final transactionFormKey = GlobalKey<FormState>();
   List<TransactionProductModel> selectedProductList = [
-    TransactionProductModel(name: '', quantity: 0, total: 0.00, discount: 0.00)
+    TransactionProductModel(
+        name: '', quantity: 0, total: 0.00, discount: 0.00, netTotal: 0.00)
   ];
   double fullTotal = 0.00;
+  double netTotal = 0.00;
 
   void addProductRow() {
     setState(() {
       selectedProductList.add(TransactionProductModel(
-          name: '', quantity: 0, total: 0.00, discount: 0.00));
+          name: '', quantity: 0, total: 0.00, discount: 0.00, netTotal: 0.00));
     });
   }
 
@@ -50,11 +52,12 @@ class _TransactionModalState extends State<TransactionModal> {
     if (transactionFormKey.currentState!.validate()) {
       context.read<TransactionRecordCubit>().saveTransaction(
           TransactionWrapperBody(
-              TransactionModel(DateTime.now(), fullTotal, selectedProductList),
+              TransactionModel(
+                  DateTime.now(), fullTotal, selectedProductList, netTotal),
               TransactionLocationModel(
                   widget.currentLocation.latitude!.toString(),
                   widget.currentLocation.longitude!.toString(),
-                  fullTotal)));
+                  netTotal)));
     }
   }
 
@@ -64,6 +67,7 @@ class _TransactionModalState extends State<TransactionModal> {
       selectedProductList[index].name = value.name!;
       selectedProductList[index].discount = value.discount!;
       selectedProductList[index].sellingPrice = value.selling!;
+      selectedProductList[index].buyingPrice = value.buying!;
       selectedProductList[index].currentQty = value.quantity!;
     });
     updateTotalSum(index);
@@ -79,12 +83,14 @@ class _TransactionModalState extends State<TransactionModal> {
     } else {
       selectedProductList[index].quantity = 0;
       selectedProductList[index].total = 0.00;
+      selectedProductList[index].netTotal = 0.00;
     }
   }
 
   void reduceTotalSum(int index) {
     setState(() {
       fullTotal -= selectedProductList[index].total;
+      netTotal -= selectedProductList[index].netTotal;
     });
   }
 
@@ -95,9 +101,12 @@ class _TransactionModalState extends State<TransactionModal> {
       if (selected.discount != 0.0) {
         total = (total / 100.00) * (100.00 - selected.discount);
       }
+      double net = total - (selected.quantity * selected.buyingPrice);
+      selected.netTotal = net;
       selected.total = total;
       setState(() {
         fullTotal += total;
+        netTotal += net;
       });
     }
   }
@@ -106,9 +115,10 @@ class _TransactionModalState extends State<TransactionModal> {
     setState(() {
       selectedProductList = [
         TransactionProductModel(
-            name: '', quantity: 0, total: 0.00, discount: 0.00)
+            name: '', quantity: 0, total: 0.00, discount: 0.00, netTotal: 0.00)
       ];
       fullTotal = 0.00;
+      netTotal = 0.00;
     });
   }
 

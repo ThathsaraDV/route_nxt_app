@@ -6,6 +6,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:route_nxt/features/common/data/data_sources/auth_service.dart';
+import 'package:route_nxt/features/dashboard/data/data_sources/remote/distance_service.dart';
 import 'package:route_nxt/features/inventory/data/data_sources/inventory_service.dart';
 import 'package:route_nxt/features/inventory/data/models/product_model.dart';
 
@@ -17,8 +18,10 @@ class MapCubit extends Cubit<MapState> {
   final FirebaseFunctions _firebaseFunctions;
   final InventoryService _inventoryService;
   final AuthService _authService;
+  final DistanceService _distanceService;
 
-  MapCubit(this._firebaseFunctions, this._inventoryService, this._authService)
+  MapCubit(this._firebaseFunctions, this._inventoryService, this._authService,
+      this._distanceService)
       : super(const MapState.initial());
 
   Future<void> init() async {
@@ -63,7 +66,6 @@ class MapCubit extends Cubit<MapState> {
   Future<void> getPolyline(LatLng source, LatLng destination) async {
     try {
       emit(const MapState.polylineLoading());
-      _firebaseFunctions.useFunctionsEmulator("192.168.8.108", 5001);
       final result =
           await _firebaseFunctions.httpsCallable('optimizeRoute').call(
         {
@@ -83,8 +85,28 @@ class MapCubit extends Cubit<MapState> {
         return LatLng(item[0], item[1]);
       }).toList();
       emit(MapState.polylineLoaded(polyline));
-    } catch (e) {
+    } on FirebaseFunctionsException catch (e) {
+      emit(MapState.polylineLoadingFailed(
+          e.message ?? "Route Optimizing Failed"));
+    }catch (e) {
       emit(const MapState.polylineLoadingFailed("Route Optimizing Failed"));
     }
   }
+
+  Future<void> finishTrip(double distance) async {
+    try {
+      var currentUser = _authService.getCurrentUser();
+      if (null != currentUser) {
+        if (0.050 < distance) {
+          await _distanceService.addDistance(currentUser.uid, distance);
+        }
+        init();
+      } else {
+        throw Exception("Internal Server Error");
+      }
+    } catch (e) {
+      emit(const MapState.polylineLoadingFailed("Internal Server Error"));
+    }
+  }
+
 }

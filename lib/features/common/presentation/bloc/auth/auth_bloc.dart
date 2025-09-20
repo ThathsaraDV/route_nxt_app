@@ -20,7 +20,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthService authService;
   final UserService userService;
   final LocalAuthentication auth;
-  late final StreamSubscription<User?> _firebaseStreamEvents;
+  StreamSubscription<User?>? _firebaseStreamEvents;
 
   AuthBloc(this.authService, this.auth, this.userService)
       : super(const AuthState.initial()) {
@@ -61,8 +61,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             );
             if (authenticated) {
               bool isRefreshed = true;
-              if (isRefreshed) {
+              var currentUser = authService.getCurrentUser();
+              if (isRefreshed && null != currentUser) {
                 emit(AuthState.bioAuthSuccess(isRefreshed));
+              } else {
+                emit(const AuthState.bioAuthFailure(
+                    "Session Expired. Please login with username and password"));
               }
             } else {
               emit(const AuthState.bioAuthFailure("Try again"));
@@ -87,12 +91,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }, logout: () async {
         emit(const AuthState.loading());
         await authService.signOutUser();
+        await _firebaseStreamEvents?.cancel();
+        _firebaseStreamEvents = null;
         emit(const AuthState.logoutSuccess(true));
       }, navigateTo: (String path) {
         emit(const AuthState.loading());
         emit(AuthState.navigate(path));
       }, afterSignIn: (UserModel user) async {
-        await _firebaseStreamEvents.cancel();
+        await _firebaseStreamEvents?.cancel();
+        _firebaseStreamEvents = null;
         emit(AuthState.signInSuccess(user));
       });
     });

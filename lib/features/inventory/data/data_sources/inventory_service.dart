@@ -117,4 +117,21 @@ class InventoryService {
       rethrow;
     }
   }
+
+  Future<List<ProductModel>> getLowStockProducts(String uid) async {
+    try {
+      final querySnapshot = await _firebaseFirestore
+          .collection('inventory')
+          .doc(uid)
+          .collection("items")
+          .orderBy('quantity', descending: false)
+          .limit(5)
+          .get();
+      return querySnapshot.docs
+          .map((doc) => ProductModel.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

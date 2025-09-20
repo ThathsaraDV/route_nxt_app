@@ -10,9 +10,12 @@ class TransactionProductModel {
   String name;
   int quantity;
   double total;
+  double netTotal;
   double discount;
   @JsonKey(includeToJson: false, includeFromJson: false)
   double sellingPrice = 0.00;
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  double buyingPrice = 0.00;
   @JsonKey(includeToJson: false, includeFromJson: false)
   int currentQty = 0;
 
@@ -20,6 +23,7 @@ class TransactionProductModel {
       {required this.name,
       required this.quantity,
       required this.total,
+      required this.netTotal,
       required this.discount});
 
   factory TransactionProductModel.fromJson(Map<String, dynamic> json) =>

@@ -55,6 +55,7 @@ app.*.map.json
 android/secrets.properties
 /.env
 /android/app/google-services.json
+*.keystore
 
 #Firebase configurations
 /firebase.json

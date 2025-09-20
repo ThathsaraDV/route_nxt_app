@@ -71,9 +71,7 @@ class _DashboardPage extends State<DashboardPage> {
             listener: (context, authState) {
               authState.maybeWhen(
                   logoutSuccess: (success) {
-                    if (null == sl.get<FirebaseAuth>().currentUser) {
-                      GoRouter.of(context).go('/login');
-                    }
+                    GoRouter.of(context).go('/login');
                   },
                   orElse: () {});
             },
@@ -96,17 +94,13 @@ class _DashboardPage extends State<DashboardPage> {
                                       : WidgetState.pressed
                                 }),
                                 onPressed: () => onChangeThemeMode(!darkMode),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.person,
-                                ),
-                                onPressed: () {},
                               )
                             ],
                           )),
                       body: authState.maybeWhen(
                           loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          logoutSuccess: (success) =>
                               const Center(child: CircularProgressIndicator()),
                           orElse: () {
                             return BlocConsumer<DashboardCubit, DashboardState>(

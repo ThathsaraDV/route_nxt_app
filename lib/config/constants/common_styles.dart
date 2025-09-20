@@ -11,10 +11,10 @@ class CommonStyles {
   static const Color errorMsgBgColor = Color(0xFFDC4C64);
   static const Color errorDarkColor = Color(0xffc72c41);
   static const List<Color> pieChartColors = [
-    Color(0xff8488B5),
-    Color(0xff78ACC1),
-    Color(0xffDD8A62),
-    Color(0xff2DA0FA)
+    Color(0xffEC7A08),
+    Color(0xffF6D173),
+    Color(0xff009596),
+    Color(0xff5752D1)
   ];
 
   static ButtonStyle mainButtonStyles(

@@ -1,6 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:route_nxt/config/constants/common_styles.dart';
+import 'package:route_nxt/features/dashboard/data/models/product_sold_model.dart';
+import 'package:route_nxt/features/dashboard/presentation/bloc/home/sold/sold_cubit.dart';
 import 'package:route_nxt/features/dashboard/presentation/widgets/home/indicator.dart';
 
 class ProductPieChart extends StatefulWidget {
@@ -52,85 +55,59 @@ class _ProductPieChartState extends State<ProductPieChart> {
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: PieChart(
-                              PieChartData(
-                                pieTouchData: PieTouchData(
-                                  touchCallback:
-                                      (FlTouchEvent event, pieTouchResponse) {
-                                    setState(() {
-                                      if (!event.isInterestedForInteractions ||
-                                          pieTouchResponse == null ||
-                                          pieTouchResponse.touchedSection ==
-                                              null) {
-                                        touchedIndex = -1;
-                                        return;
-                                      }
-                                      touchedIndex = pieTouchResponse
-                                          .touchedSection!.touchedSectionIndex;
-                                    });
-                                  },
-                                ),
-                                borderData: FlBorderData(
-                                  show: false,
-                                ),
-                                sectionsSpace: 0,
-                                centerSpaceRadius: 40,
-                                sections: showingSections(),
-                              ),
+                    BlocBuilder<SoldCubit, SoldState>(
+                      builder: (context, state) {
+                        return state.when(
+                          initial: () => _getPieChartText("N/A"),
+                          loading: () => Center(
+                            child: Transform.scale(
+                              scale: 0.5,
+                              child: const CircularProgressIndicator(),
                             ),
                           ),
-                        ),
-                        const SizedBox(
-                          width: 6,
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Indicator(
-                                color: CommonStyles.pieChartColors[0],
-                                text: 'First',
-                                isSquare: true,
-                              ),
-                              const SizedBox(
-                                height: 4,
-                              ),
-                              Indicator(
-                                color: CommonStyles.pieChartColors[1],
-                                text: 'Second',
-                                isSquare: true,
-                              ),
-                              const SizedBox(
-                                height: 4,
-                              ),
-                              Indicator(
-                                color: CommonStyles.pieChartColors[2],
-                                text: 'Third',
-                                isSquare: true,
-                              ),
-                              const SizedBox(
-                                height: 4,
-                              ),
-                              Indicator(
-                                color: CommonStyles.pieChartColors[3],
-                                text: 'Fourth',
-                                isSquare: true,
-                              ),
-                              const SizedBox(
-                                height: 18,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                          loadingFailed: (message) => _getPieChartText(message),
+                          loaded: (List<ProductSoldModel> soldList) {
+                            if (soldList.isNotEmpty) {
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: AspectRatio(
+                                      aspectRatio: 1,
+                                      child: PieChart(
+                                        PieChartData(
+                                          pieTouchData: PieTouchData(
+                                            touchCallback: (FlTouchEvent event,
+                                                pieTouchResponse) {
+                                              // Handle touch interaction here
+                                            },
+                                          ),
+                                          borderData: FlBorderData(
+                                            show: false,
+                                          ),
+                                          sectionsSpace: 0,
+                                          centerSpaceRadius: 40,
+                                          sections:
+                                              _getPieChartSections(soldList),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 6,
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: _getPieChartIndicators(soldList),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return _getPieChartText("No Data");
+                            }
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(
                       height: 12,
@@ -145,68 +122,74 @@ class _ProductPieChartState extends State<ProductPieChart> {
     );
   }
 
-  List<PieChartSectionData> showingSections() {
-    return List.generate(4, (i) {
+  Widget _getPieChartText(String message) {
+    return Expanded(
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.cloud_off,
+              size: 54,
+            ),
+            const SizedBox(
+              height: 6,
+            ),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<PieChartSectionData> _getPieChartSections(
+      List<ProductSoldModel> soldList) {
+    return List.generate(soldList.length, (i) {
       final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? 25.0 : 16.0;
+      final fontSize = isTouched ? 24.0 : 14.0;
       final radius = isTouched ? 60.0 : 50.0;
       const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
-      switch (i) {
-        case 0:
-          return PieChartSectionData(
-            color: CommonStyles.pieChartColors[i],
-            value: 40,
-            title: '40%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSecondary,
-              shadows: shadows,
-            ),
-          );
-        case 1:
-          return PieChartSectionData(
-            color: CommonStyles.pieChartColors[i],
-            value: 30,
-            title: '30%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSecondary,
-              shadows: shadows,
-            ),
-          );
-        case 2:
-          return PieChartSectionData(
-            color: CommonStyles.pieChartColors[i],
-            value: 15,
-            title: '15%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSecondary,
-              shadows: shadows,
-            ),
-          );
-        case 3:
-          return PieChartSectionData(
-            color: CommonStyles.pieChartColors[i],
-            value: 15,
-            title: '15%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSecondary,
-              shadows: shadows,
-            ),
-          );
-        default:
-          throw Error();
-      }
+      return PieChartSectionData(
+        color: CommonStyles.pieChartColors[i],
+        value: soldList[i].totalQuantity.toDouble(),
+        title: soldList[i].totalQuantity.toString(),
+        radius: radius,
+        titleStyle: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.onSecondary,
+          shadows: shadows,
+        ),
+      );
     });
   }
+
+  Widget _getPieChartIndicators(List<ProductSoldModel> soldList) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (int i = 0; i < soldList.length; i++) ...[
+          Indicator(
+            color: CommonStyles.pieChartColors[i],
+            text: soldList[i].productName,
+            isSquare: true,
+          ),
+          const SizedBox(
+            height: 4,
+          ),
+        ],
+      ],
+    );
+  }
+
 }
